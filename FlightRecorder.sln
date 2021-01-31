@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30907.101
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlightRecorder.Client", "FlightRecorder.Client\FlightRecorder.Client.csproj", "{C446EED6-D2F5-46ED-821D-C6B51E6349C6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlightRecorder.Client.SimConnectMSFS", "FlightRecorder.Client.SimConnectMSFS\FlightRecorder.Client.SimConnectMSFS.csproj", "{9FB44009-CA0B-4A34-A16C-BBDC0D9E93B2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlightRecorder.Client.Generators", "FlightRecorder.Client.Generators\FlightRecorder.Client.Generators.csproj", "{C6B949F8-A343-47BF-A28E-393B2065D92E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0AA6D913-2B63-463D-961E-52D46334190A}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C446EED6-D2F5-46ED-821D-C6B51E6349C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C446EED6-D2F5-46ED-821D-C6B51E6349C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C446EED6-D2F5-46ED-821D-C6B51E6349C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C446EED6-D2F5-46ED-821D-C6B51E6349C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FB44009-CA0B-4A34-A16C-BBDC0D9E93B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FB44009-CA0B-4A34-A16C-BBDC0D9E93B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FB44009-CA0B-4A34-A16C-BBDC0D9E93B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FB44009-CA0B-4A34-A16C-BBDC0D9E93B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6B949F8-A343-47BF-A28E-393B2065D92E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6B949F8-A343-47BF-A28E-393B2065D92E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6B949F8-A343-47BF-A28E-393B2065D92E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6B949F8-A343-47BF-A28E-393B2065D92E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {68D58B7C-DD30-4F8F-BBFA-F399DDC6ABCE}
+	EndGlobalSection
+EndGlobal

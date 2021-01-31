@@ -1,0 +1,82 @@
+﻿<Window x:Class="FlightRecorder.Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FlightRecorder.Client"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="300" Width="300">
+    <Grid>
+        <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=NotConnected}">
+            <TextBlock Text="Cannot connect to SimConnect!" />
+        </StackPanel>
+        <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=Connecting}">
+            <TextBlock Text="Connecting to SimConnect..." />
+        </StackPanel>
+        <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=Connected}">
+            <Button Click="ButtonRecord_Click"
+                IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                Record
+            </Button>
+            <Button Click="ButtonStop_Click"
+                IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Recording}">
+                Stop Recording
+            </Button>
+            <Button Click="ButtonReplay_Click"
+                IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                Replay
+            </Button>
+
+            <TextBlock Text="Stats:" Margin="0,10,0,0" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Total Frames" Grid.Row="0" Grid.Column="0" />
+                <TextBlock Text="{Binding FrameCount}" Grid.Row="0" Grid.Column="1" />
+
+                <TextBlock Text="Current Frame" Grid.Row="1" Grid.Column="0" />
+                <TextBlock Text="{Binding CurrentFrame}" Grid.Row="1" Grid.Column="1" />
+            </Grid>
+
+            <TextBlock Text="Current Data:" Margin="0,10,0,0" />
+            <Grid DataContext="{Binding AircraftPosition}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Latitude" Grid.Row="0" Grid.Column="0" />
+                <TextBlock Text="{Binding Latitude}" Grid.Row="0" Grid.Column="1" />
+                <TextBlock Text="Longitude" Grid.Row="1" Grid.Column="0" />
+                <TextBlock Text="{Binding Longitude}" Grid.Row="1" Grid.Column="1" />
+                <TextBlock Text="Altitude" Grid.Row="2" Grid.Column="0" />
+                <TextBlock Text="{Binding Altitude}" Grid.Row="2" Grid.Column="1" />
+
+                <TextBlock Text="Pitch" Grid.Row="3" Grid.Column="0" />
+                <TextBlock Text="{Binding Pitch}" Grid.Row="3" Grid.Column="1" />
+                <TextBlock Text="Bank" Grid.Row="4" Grid.Column="0" />
+                <TextBlock Text="{Binding Bank}" Grid.Row="4" Grid.Column="1" />
+                <TextBlock Text="True Heading" Grid.Row="5" Grid.Column="0" />
+                <TextBlock Text="{Binding TrueHeading}" Grid.Row="5" Grid.Column="1" />
+                <TextBlock Text="Magnetic Heading" Grid.Row="6" Grid.Column="0" />
+                <TextBlock Text="{Binding MagneticHeading}" Grid.Row="6" Grid.Column="1" />
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Window>

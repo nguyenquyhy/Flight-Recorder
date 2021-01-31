@@ -1,0 +1,15 @@
+﻿<Application x:Class="FlightRecorder.Client.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:FlightRecorder.Client.Converters"
+             xmlns:local="clr-namespace:FlightRecorder.Client">
+    <Application.Resources>
+        <converters:BooleanNegationConverter x:Key="TrueToFalseConverter" />
+        <converters:ValueToBooleanConverter x:Key="ValueToTrueConverter" />
+        <converters:ValueToBooleanConverter x:Key="ValueToFalseConverter" Reverse="True" />
+        <converters:BooleanToVisibilityConverter x:Key="TrueToVisibleConverter" />
+        <converters:BooleanToVisibilityConverter x:Key="TrueToCollapsedConverter" Reverse="True" />
+        <converters:ValueToVisiblityConverter x:Key="ValueToVisibleConverter" />
+        <converters:ValueToVisiblityConverter x:Key="ValueToCollapsedConverter" Reverse="True" />
+    </Application.Resources>
+</Application>
