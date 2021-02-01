@@ -46,6 +46,19 @@ namespace FlightRecorder.Client
             };
 ");
 
+            builder.Append(@"
+        public static partial AircraftPositionStruct ToStruct(AircraftPosition s)
+            => new AircraftPositionStruct
+            {");
+            foreach ((_, var name, _, _, _, _) in fields)
+            {
+                builder.Append($@"
+                {name} = s.{name},");
+            }
+            builder.Append(@"
+            };
+");
+
             foreach ((var type, var name, _, _, _, _) in fields)
             {
                 builder.Append($@"

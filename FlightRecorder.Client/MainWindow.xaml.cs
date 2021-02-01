@@ -1,8 +1,14 @@
 ﻿using FlightRecorder.Client.SimConnectMSFS;
+using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -106,6 +112,12 @@ namespace FlightRecorder.Client
 
         private void ButtonReplay_Click(object sender, RoutedEventArgs e)
         {
+            if (records == null || records.Count == 0)
+            {
+                MessageBox.Show("Nothing to replay");
+                return;
+            }
+
             logger.LogDebug("Start replay...");
 
             viewModel.State = State.Replaying;
@@ -186,6 +198,110 @@ namespace FlightRecorder.Client
                     Thread.Sleep(16);
                 }
             });
+        }
+
+        private void ButtonSave_Click(object sender, RoutedEventArgs e)
+        {
+            if (records == null || records.Count == 0 || !startMilliseconds.HasValue || !endMilliseconds.HasValue)
+            {
+                MessageBox.Show("Nothing to save!");
+                return;
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                FileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm}.flightrecorder"
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                var version = Assembly.GetEntryAssembly().GetName().Version;
+                var data = new SavedData(version.ToString(), startMilliseconds.Value, endMilliseconds.Value, records);
+                var dataString = JsonSerializer.Serialize(data);
+
+                using (var fileStream = new FileStream(dialog.FileName, FileMode.Create))
+                {
+                    using var outStream = new ZipOutputStream(fileStream);
+
+                    outStream.SetLevel(9);
+
+                    var entry = new ZipEntry("data.json")
+                    {
+                        DateTime = DateTime.Now
+                    };
+                    outStream.PutNextEntry(entry);
+
+                    var writer = new StreamWriter(outStream);
+                    writer.Write(dataString);
+                    writer.Flush();
+
+                    outStream.Finish();
+                }
+
+                logger.LogDebug("Save file into {fileName}", dialog.FileName);
+            }
+        }
+
+        private void ButtonLoad_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Recorded Flight|*.flightrecorder"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                using var file = dialog.OpenFile();
+                using var zipFile = new ZipFile(file);
+
+                foreach (ZipEntry entry in zipFile)
+                {
+                    if (entry.IsFile && entry.Name == "data.json")
+                    {
+                        using var stream = zipFile.GetInputStream(entry);
+
+                        var reader = new StreamReader(stream);
+                        var dataString = reader.ReadToEnd();
+
+                        var savedData = JsonSerializer.Deserialize<SavedData>(dataString);
+
+                        startMilliseconds = savedData.StartTime;
+                        endMilliseconds = savedData.EndTime;
+                        records = savedData.Records.Select(r => (r.Time, AircraftPosition.ToStruct(r.Position))).ToList();
+                        viewModel.FrameCount = records.Count;
+                    }
+                }
+            }
+        }
+    }
+
+    public class SavedData
+    {
+        public SavedData()
+        {
+
+        }
+
+        public SavedData(string clientVersion, long startTime, long endTime, List<(long milliseconds, AircraftPositionStruct position)> records)
+        {
+            ClientVersion = clientVersion;
+            StartTime = startTime;
+            EndTime = endTime;
+            Records = records.Select(r => new SavedRecord
+            {
+                Time = r.milliseconds,
+                Position = AircraftPosition.FromStruct(r.position)
+            }).ToList();
+        }
+
+        public string ClientVersion { get; set; }
+        public long StartTime { get; set; }
+        public long EndTime { get; set; }
+        public List<SavedRecord> Records { get; set; }
+
+        public class SavedRecord
+        {
+            public long Time { get; set; }
+            public AircraftPosition Position { get; set; }
         }
     }
 }

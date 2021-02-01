@@ -105,5 +105,6 @@ namespace FlightRecorder.Client
     public partial class AircraftPosition
     {
         public static partial AircraftPosition FromStruct(AircraftPositionStruct s);
+        public static partial AircraftPositionStruct ToStruct(AircraftPosition s);
     }
 }
