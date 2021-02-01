@@ -1,7 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -9,7 +7,7 @@ using System.Text;
 namespace FlightRecorder.Client.Generators
 {
     [Generator]
-    public class ViewModelGenerator : ISourceGenerator
+    public class ModelGenerator : BaseGenerator, ISourceGenerator
     {
         public void Initialize(GeneratorInitializationContext context)
         {
@@ -23,7 +21,7 @@ namespace FlightRecorder.Client.Generators
 
         public void Execute(GeneratorExecutionContext context)
         {
-            var fields = GetFields(context).ToList();
+            var fields = GetAircraftFields(context).ToList();
 
             var builder = new StringBuilder();
             builder.Append(@"
@@ -59,29 +57,6 @@ namespace FlightRecorder.Client
 }");
 
             context.AddSource("ViewModelGenerator", SourceText.From(builder.ToString(), Encoding.UTF8));
-        }
-
-        private IEnumerable<(string type, string name)> GetFields(GeneratorExecutionContext context)
-        {
-            //var libraryContext = context.Compilation.References.FirstOrDefault(r => r.Display == "FlightRecorder.Client.SimConnectMSFS") as CompilationReference;
-            var libraryContext = context;
-
-            foreach (var tree in libraryContext.Compilation.SyntaxTrees)
-            {
-                foreach (var str in tree.GetRoot().DescendantNodesAndSelf().OfType<StructDeclarationSyntax>())
-                {
-                    if (str.Identifier.ValueText == "AircraftPositionStruct")
-                    {
-                        foreach (var field in str.Members.OfType<FieldDeclarationSyntax>())
-                        {
-                            if (field.Declaration.Type is PredefinedTypeSyntax predefinedType)
-                            {
-                                yield return (predefinedType.Keyword.ValueText, field.Declaration.Variables[0].Identifier.ValueText);
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
