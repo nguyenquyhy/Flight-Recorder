@@ -112,11 +112,18 @@ namespace FlightRecorder.Client
                     {
                         case "double":
                             builder.Append($@"
-                        {name} = position.{name} * factor,"); // TODO: support wrapping around for angle
+                {name} = position.{name} * factor,"); // TODO: support wrapping around for angle
                             break;
                         case "int":
                             builder.Append($@"
-                        {name} = (int)Math.Round(position.{name} * factor),"); // TODO: support wrapping around for angle
+                {name} = (int)Math.Round(position.{name} * factor),");
+                            break;
+                        case "uint":
+                            builder.Append($@"
+                {name} = (uint)Math.Round(position.{name} * factor),");
+                            break;
+                        default:
+                            // TODO: warning
                             break;
                     }
                 }
