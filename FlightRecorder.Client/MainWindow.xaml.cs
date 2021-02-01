@@ -168,6 +168,11 @@ namespace FlightRecorder.Client
                         if (lastPosition.HasValue)
                         {
                             var interpolation = (double)(currentElapsed - lastElapsed.Value) / (recordedElapsed.Value - lastElapsed.Value);
+                            if (interpolation == 0.5)
+                            {
+                                // Edge case: let next value win
+                                interpolation = 0.501;
+                            }
                             nextValue = nextValue * interpolation + AircraftPositionStructOperator.ToSet(lastPosition.Value) * (1 - interpolation);
                         }
                         if (currentPosition.HasValue && currentPosition.Value.BrakeParkingPosition != position.Value.BrakeParkingPosition)
