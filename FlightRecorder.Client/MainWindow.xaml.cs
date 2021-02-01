@@ -26,6 +26,7 @@ namespace FlightRecorder.Client
         private long? endMilliseconds;
         private long? replayMilliseconds;
         private List<(long milliseconds, AircraftPositionStruct position)> records = null;
+        private AircraftPositionStruct? currentPosition = null;
 
         public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector)
         {
@@ -65,6 +66,8 @@ namespace FlightRecorder.Client
 
         private void Connector_AircraftPositionUpdated(object sender, AircraftPositionUpdatedEventArgs e)
         {
+            currentPosition = e.Position;
+
             if (startMilliseconds.HasValue && !endMilliseconds.HasValue && records != null)
             {
                 records.Add((stopwatch.ElapsedMilliseconds, e.Position));
@@ -161,11 +164,15 @@ namespace FlightRecorder.Client
                     {
                         logger.LogTrace("Delta time {delta} {current} {recorded}.", currentElapsed - recordedElapsed, currentElapsed, recordedElapsed);
 
-                        var nextValue = position.Value;
+                        var nextValue = AircraftPositionStructOperator.ToSet(position.Value);
                         if (lastPosition.HasValue)
                         {
                             var interpolation = (double)(currentElapsed - lastElapsed.Value) / (recordedElapsed.Value - lastElapsed.Value);
-                            nextValue = nextValue * interpolation + lastPosition.Value * (1 - interpolation);
+                            nextValue = nextValue * interpolation + AircraftPositionStructOperator.ToSet(lastPosition.Value) * (1 - interpolation);
+                        }
+                        if (currentPosition.HasValue && currentPosition.Value.BrakeParkingPosition != position.Value.BrakeParkingPosition)
+                        {
+                            connector.ParkingBrake();
                         }
 
                         connector.Set(nextValue);

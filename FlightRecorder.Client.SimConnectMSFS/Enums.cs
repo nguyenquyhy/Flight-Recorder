@@ -5,8 +5,7 @@
         GENERIC,
         PAUSE,
         UNPAUSE,
-        LEFT_BRAKE_SET,
-        RIGHT_BRAKE_SET,
+        PARKING_BRAKES,
     }
     enum GROUPS
     {
@@ -16,6 +15,7 @@
     enum DEFINITIONS
     {
         AircraftPosition,
+        AircraftPositionSet,
     }
 
     internal enum DATA_REQUESTS

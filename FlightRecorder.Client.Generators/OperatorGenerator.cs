@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,7 @@ namespace FlightRecorder.Client.Generators
 #if DEBUG
             if (!Debugger.IsAttached)
             {
-                Debugger.Launch();
+                //Debugger.Launch();
             }
 #endif
         }
@@ -22,7 +23,40 @@ namespace FlightRecorder.Client.Generators
         public void Execute(GeneratorExecutionContext context)
         {
             var fields = GetAircraftFields(context).ToList();
+            AddSetStruct(context, fields);
+            AddOperator(context, fields);
+        }
 
+        private static void AddSetStruct(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, string setByEvent)> fields)
+        {
+            var builder = new StringBuilder();
+            builder.Append(@"
+using System;
+using FlightRecorder.Client;
+
+namespace FlightRecorder.Client
+{
+    public partial struct AircraftPositionSetStruct
+    {");
+
+            foreach ((var type, var name, _, _, _, var e) in fields)
+            {
+                if (string.IsNullOrEmpty(e))
+                {
+                    builder.Append($@"
+        public {type} {name};");
+                }
+            }
+
+            builder.Append(@"
+    }
+}");
+
+            context.AddSource("SetStruct", SourceText.From(builder.ToString(), Encoding.UTF8));
+        }
+
+        private static void AddOperator(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, string setByEvent)> fields)
+        {
             var builder = new StringBuilder();
             builder.Append(@"
 using System;
@@ -34,13 +68,32 @@ namespace FlightRecorder.Client
     {");
 
             builder.Append(@"
-        public static partial AircraftPositionStruct Add(AircraftPositionStruct position1, AircraftPositionStruct position2)
-            => new AircraftPositionStruct
+        public static partial AircraftPositionSetStruct ToSet(AircraftPositionStruct variables)
+            => new AircraftPositionSetStruct
             {");
-            foreach ((_, var name) in fields)
+            foreach ((_, var name, _, _, _, var e) in fields)
             {
-                builder.Append($@"
+                if (string.IsNullOrEmpty(e))
+                {
+                    builder.Append($@"
+                {name} = variables.{name},");
+                }
+            }
+            builder.Append(@"
+            };
+");
+
+            builder.Append(@"
+        public static partial AircraftPositionSetStruct Add(AircraftPositionSetStruct position1, AircraftPositionSetStruct position2)
+            => new AircraftPositionSetStruct
+            {");
+            foreach ((_, var name, _, _, _, var e) in fields)
+            {
+                if (string.IsNullOrEmpty(e))
+                {
+                    builder.Append($@"
                 {name} = position1.{name} + position2.{name},");
+                }
             }
             builder.Append(@"
             };
@@ -48,13 +101,25 @@ namespace FlightRecorder.Client
 
 
             builder.Append(@"
-        public static partial AircraftPositionStruct Scale(AircraftPositionStruct position, double factor)
-            => new AircraftPositionStruct
+        public static partial AircraftPositionSetStruct Scale(AircraftPositionSetStruct position, double factor)
+            => new AircraftPositionSetStruct
             {");
-            foreach ((_, var name) in fields)
+            foreach ((var type, var name, _, _, _, var e) in fields)
             {
-                builder.Append($@"
-                {name} = position.{name} * factor,"); // TODO: support wrapping around for angle
+                if (string.IsNullOrEmpty(e))
+                {
+                    switch (type)
+                    {
+                        case "double":
+                            builder.Append($@"
+                        {name} = position.{name} * factor,"); // TODO: support wrapping around for angle
+                            break;
+                        case "int":
+                            builder.Append($@"
+                        {name} = (int)Math.Round(position.{name} * factor),"); // TODO: support wrapping around for angle
+                            break;
+                    }
+                }
             }
             builder.Append(@"
             };
@@ -64,7 +129,7 @@ namespace FlightRecorder.Client
     }
 }");
 
-            context.AddSource("ViewModelGenerator", SourceText.From(builder.ToString(), Encoding.UTF8));
+            context.AddSource("OperatorGenerator", SourceText.From(builder.ToString(), Encoding.UTF8));
         }
     }
 }
