@@ -26,6 +26,10 @@
                 IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
                 Replay
             </Button>
+            <Button Click="ButtonStopReplay_Click"
+                IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Replaying}">
+                Stop Replaying
+            </Button>
 
             <Button Click="ButtonSave_Click"
                     IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">

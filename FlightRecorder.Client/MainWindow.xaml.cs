@@ -139,7 +139,14 @@ namespace FlightRecorder.Client
 
                 while (true)
                 {
-                    var currentElapsed = stopwatch.ElapsedMilliseconds - replayMilliseconds;
+                    var replayStartTime = replayMilliseconds;
+                    if (replayStartTime == null)
+                    {
+                        FinishReplay();
+                        return;
+                    }
+
+                    var currentElapsed = stopwatch.ElapsedMilliseconds - replayStartTime.Value;
 
                     while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
                     {
@@ -162,12 +169,7 @@ namespace FlightRecorder.Client
                         }
                         else
                         {
-                            logger.LogDebug("Replay finished.");
-                            connector.Unpause();
-                            Dispatcher.Invoke(() =>
-                            {
-                                viewModel.State = State.Idle;
-                            });
+                            FinishReplay();
                             return;
                         }
                     }
@@ -198,6 +200,14 @@ namespace FlightRecorder.Client
                     Thread.Sleep(16);
                 }
             });
+        }
+
+        private void ButtonStopReplay_Click(object sender, RoutedEventArgs e)
+        {
+            if (viewModel.State == State.Replaying)
+            {
+                replayMilliseconds = null;
+            }
         }
 
         private void ButtonSave_Click(object sender, RoutedEventArgs e)
@@ -271,6 +281,17 @@ namespace FlightRecorder.Client
                     }
                 }
             }
+        }
+
+        private void FinishReplay()
+        {
+            logger.LogDebug("Replay finished.");
+            connector.Unpause();
+            Dispatcher.Invoke(() =>
+            {
+                viewModel.State = State.Idle;
+                viewModel.CurrentFrame = 0;
+            });
         }
     }
 
