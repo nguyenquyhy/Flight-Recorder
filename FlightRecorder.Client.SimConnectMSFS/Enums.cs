@@ -5,7 +5,6 @@
         GENERIC,
         PAUSE,
         UNPAUSE,
-        PARKING_BRAKES,
     }
     enum GROUPS
     {

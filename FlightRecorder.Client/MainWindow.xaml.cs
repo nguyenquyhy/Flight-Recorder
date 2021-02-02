@@ -189,9 +189,9 @@ namespace FlightRecorder.Client
                             }
                             nextValue = nextValue * interpolation + AircraftPositionStructOperator.ToSet(lastPosition.Value) * (1 - interpolation);
                         }
-                        if (currentPosition.HasValue && currentPosition.Value.BrakeParkingPosition != position.Value.BrakeParkingPosition)
+                        if (currentPosition.HasValue)
                         {
-                            connector.ParkingBrake();
+                            connector.TriggerEvents(currentPosition.Value, position.Value);
                         }
 
                         connector.Set(nextValue);

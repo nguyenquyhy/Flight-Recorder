@@ -9,6 +9,8 @@ namespace FlightRecorder.Client.Generators
     [Generator]
     public class ConnectorGenerator : BaseGenerator, ISourceGenerator
     {
+        private const int InitialEventID = 1000;
+
         public void Initialize(GeneratorInitializationContext context)
         {
 #if DEBUG
@@ -26,6 +28,7 @@ namespace FlightRecorder.Client.Generators
             var builder = new StringBuilder();
             builder.Append(@"
 using System;
+using Microsoft.Extensions.Logging;
 using Microsoft.FlightSimulator.SimConnect;
 
 namespace FlightRecorder.Client.SimConnectMSFS
@@ -34,7 +37,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
     {");
 
             builder.Append(@"
-        private partial void RegisterAircraftPositionDefinition()
+        private void RegisterAircraftPositionDefinition()
         {
             RegisterDataDefinition<AircraftPositionStruct>(DEFINITIONS.AircraftPosition");
             foreach ((_, _, var variable, var unit, var type, _) in fields)
@@ -48,7 +51,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
 ");
 
             builder.Append(@"
-        private partial void RegisterAircraftPositionSetDefinition()
+        private void RegisterAircraftPositionSetDefinition()
         {
             RegisterDataDefinition<AircraftPositionSetStruct>(DEFINITIONS.AircraftPositionSet");
             foreach ((_, _, var variable, var unit, var type, var setBy) in fields)
@@ -61,6 +64,45 @@ namespace FlightRecorder.Client.SimConnectMSFS
             }
             builder.Append(@"
             );
+        }
+");
+
+            builder.Append(@"
+        private void RegisterEvents()
+        {");
+            var eventId = InitialEventID;
+            foreach ((_, _, var variable, var unit, var type, var setBy) in fields)
+            {
+                if (!string.IsNullOrEmpty(setBy))
+                {
+                    builder.Append($@"
+            logger.LogDebug(""Register event {{eventName}} to ID {{eventID}}"", ""{setBy}"", {eventId});
+            simconnect.MapClientEventToSimEvent((EVENTS){eventId}, ""{setBy}"");");
+                    eventId++;
+                }
+            }
+            builder.Append(@"
+        }
+");
+            builder.Append(@"
+        public void TriggerEvents(AircraftPositionStruct current, AircraftPositionStruct expected)
+        {");
+            eventId = InitialEventID;
+            foreach ((_, var name, var variable, var unit, var type, var setBy) in fields)
+            {
+                if (!string.IsNullOrEmpty(setBy))
+                {
+                    builder.Append($@"
+            if (current.{name} != expected.{name})
+            {{
+                logger.LogDebug(""Trigger event {{eventName}}"", ""{setBy}"");
+                simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, (EVENTS){eventId}, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            }}
+");
+                    eventId++;
+                }
+            }
+            builder.Append(@"
         }
 ");
 
