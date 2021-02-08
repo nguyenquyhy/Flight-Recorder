@@ -24,7 +24,8 @@ namespace FlightRecorder.Client
     {
         NotConnected,
         Connecting,
-        Connected
+        Connected,
+        Failed
     }
 
     public enum State

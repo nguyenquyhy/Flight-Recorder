@@ -50,24 +50,50 @@ namespace FlightRecorder.Client
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            viewModel.SimConnectState = SimConnectState.Connecting;
+
+            // Create an event handle for the WPF window to listen for SimConnect events
+            Handle = new WindowInteropHelper(sender as Window).Handle; // Get handle of main WPF Window
+            var HandleSource = HwndSource.FromHwnd(Handle); // Get source of handle in order to add event handlers to it
+            HandleSource.AddHook(HandleHook);
+
             try
             {
-                viewModel.SimConnectState = SimConnectState.Connecting;
-
-                // Create an event handle for the WPF window to listen for SimConnect events
-                Handle = new WindowInteropHelper(sender as Window).Handle; // Get handle of main WPF Window
-                var HandleSource = HwndSource.FromHwnd(Handle); // Get source of handle in order to add event handlers to it
-                HandleSource.AddHook(connector.HandleSimConnectEvents);
-
                 connector.Initialize(Handle);
 
-                viewModel.SimConnectState = SimConnectState.Connected;
+                Dispatcher.Invoke(() =>
+                {
+                    viewModel.SimConnectState = SimConnectState.Connected;
+                });
+            }
+            catch (BadImageFormatException ex)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show("Cannot initialize SimConnect");
+                    viewModel.SimConnectState = SimConnectState.Failed;
+                });
             }
             catch
             {
-                MessageBox.Show("Cannot initialize SimConnect");
+                viewModel.SimConnectState = SimConnectState.NotConnected;
+
+                // TODO: retry
             }
             stopwatch.Start();
+        }
+
+        private IntPtr HandleHook(IntPtr hWnd, int message, IntPtr wParam, IntPtr lParam, ref bool isHandled)
+        {
+            try
+            {
+                connector.HandleSimConnectEvents(message, ref isHandled);
+                return IntPtr.Zero;
+            }
+            catch (BadImageFormatException ex)
+            {
+                return IntPtr.Zero;
+            }
         }
 
         private void Connector_AircraftPositionUpdated(object sender, AircraftPositionUpdatedEventArgs e)
