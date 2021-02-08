@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlightRecorder.Client.Logics", "FlightRecorder.Client.Logics\FlightRecorder.Client.Logics.csproj", "{9E970BD5-2289-4414-9124-2E850F9FB988}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{C6B949F8-A343-47BF-A28E-393B2065D92E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6B949F8-A343-47BF-A28E-393B2065D92E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C6B949F8-A343-47BF-A28E-393B2065D92E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E970BD5-2289-4414-9124-2E850F9FB988}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E970BD5-2289-4414-9124-2E850F9FB988}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E970BD5-2289-4414-9124-2E850F9FB988}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E970BD5-2289-4414-9124-2E850F9FB988}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

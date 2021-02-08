@@ -1,16 +1,12 @@
-﻿using FlightRecorder.Client.SimConnectMSFS;
+﻿using FlightRecorder.Client.Logics;
+using FlightRecorder.Client.SimConnectMSFS;
 using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
 
@@ -24,19 +20,11 @@ namespace FlightRecorder.Client
         private readonly ILogger<MainWindow> logger;
         private readonly MainViewModel viewModel;
         private readonly Connector connector;
-        private readonly Stopwatch stopwatch = new Stopwatch();
+        private readonly RecorderLogic recorderLogic;
 
         private IntPtr Handle;
 
-        private long? startMilliseconds;
-        private long? endMilliseconds;
-        private long? replayMilliseconds;
-        private long? pausedMilliseconds;
-        private int? pausedFrame;
-        private List<(long milliseconds, AircraftPositionStruct position)> records = null;
-        private AircraftPositionStruct? currentPosition = null;
-
-        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector)
+        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, RecorderLogic recorderLogic)
         {
             InitializeComponent();
 
@@ -44,10 +32,39 @@ namespace FlightRecorder.Client
             this.logger = logger;
             this.viewModel = viewModel;
             this.connector = connector;
-
+            this.recorderLogic = recorderLogic;
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
 
             DataContext = viewModel;
+
+            recorderLogic.RecordsUpdated += RecorderLogic_RecordsUpdated;
+            recorderLogic.CurrentFrameChanged += RecorderLogic_CurrentFrameChanged;
+            recorderLogic.ReplayFinished += RecorderLogic_ReplayFinished;
+        }
+
+        private void RecorderLogic_RecordsUpdated(object sender, EventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                viewModel.FrameCount = recorderLogic.Records?.Count ?? 0;
+            });
+        }
+
+        private void RecorderLogic_CurrentFrameChanged(object sender, CurrentFrameChangedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                viewModel.CurrentFrame = e.CurrentFrame;
+            });
+        }
+
+        private void RecorderLogic_ReplayFinished(object sender, EventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                viewModel.State = State.Idle;
+                viewModel.CurrentFrame = 0;
+            });
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -82,7 +99,8 @@ namespace FlightRecorder.Client
 
                 // TODO: retry
             }
-            stopwatch.Start();
+
+            recorderLogic.Initialize();
         }
 
         private IntPtr HandleHook(IntPtr hWnd, int message, IntPtr wParam, IntPtr lParam, ref bool isHandled)
@@ -100,17 +118,7 @@ namespace FlightRecorder.Client
 
         private void Connector_AircraftPositionUpdated(object sender, AircraftPositionUpdatedEventArgs e)
         {
-            currentPosition = e.Position;
-
-            if (startMilliseconds.HasValue && !endMilliseconds.HasValue && records != null)
-            {
-                records.Add((stopwatch.ElapsedMilliseconds, e.Position));
-                var count = records.Count;
-                Dispatcher.Invoke(() =>
-                {
-                    viewModel.FrameCount = count;
-                });
-            }
+            recorderLogic.CurrentPosition = e.Position;
 
             Dispatcher.Invoke(() =>
             {
@@ -120,148 +128,49 @@ namespace FlightRecorder.Client
 
         private void ButtonRecord_Click(object sender, RoutedEventArgs e)
         {
-            logger.LogDebug("Start recording...");
-
+            recorderLogic.Start();
             viewModel.State = State.Recording;
-
-            startMilliseconds = stopwatch.ElapsedMilliseconds;
-            endMilliseconds = null;
-            records = new List<(long milliseconds, AircraftPositionStruct position)>();
         }
 
         private void ButtonStop_Click(object sender, RoutedEventArgs e)
         {
-            endMilliseconds = stopwatch.ElapsedMilliseconds;
-
-            viewModel.FrameCount = records.Count;
+            recorderLogic.StopRecording();
             viewModel.State = State.Idle;
-            logger.LogDebug("Recording stopped. {totalFrames} frames recorded.", records.Count);
         }
 
         private void ButtonReplay_Click(object sender, RoutedEventArgs e)
         {
-            if (records == null || records.Count == 0)
+            if (!recorderLogic.Replay())
             {
                 MessageBox.Show("Nothing to replay");
                 return;
             }
 
-            logger.LogDebug("Start replay...");
-
             viewModel.State = State.Replaying;
 
-            replayMilliseconds = stopwatch.ElapsedMilliseconds;
 
-            Task.Run(() =>
-            {
-                connector.Pause();
-
-                var enumerator = records.GetEnumerator();
-                var frameIndex = 0;
-
-                long? recordedElapsed = null;
-                AircraftPositionStruct? position = null;
-
-                long? lastElapsed = 0;
-                AircraftPositionStruct? lastPosition = null;
-
-                while (true)
-                {
-                    var replayStartTime = replayMilliseconds;
-                    if (replayStartTime == null)
-                    {
-                        FinishReplay();
-                        return;
-                    }
-
-                    if (pausedMilliseconds == null)
-                    {
-                        if (pausedFrame != null && pausedFrame != frameIndex)
-                        {
-                            enumerator = records.GetEnumerator();
-                            frameIndex = 0;
-                            recordedElapsed = null;
-                            position = null;
-                            pausedFrame = null;
-                        }
-
-                        var currentElapsed = stopwatch.ElapsedMilliseconds - replayStartTime.Value;
-
-                        while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
-                        {
-                            logger.LogTrace("Move next.", currentElapsed);
-                            var canMove = enumerator.MoveNext();
-
-                            if (canMove)
-                            {
-                                frameIndex++;
-                                (var recordedMilliseconds, var recordedPosition) = enumerator.Current;
-                                lastElapsed = recordedElapsed;
-                                lastPosition = position;
-                                recordedElapsed = recordedMilliseconds - startMilliseconds;
-                                position = recordedPosition;
-
-                                Dispatcher.Invoke(() =>
-                                {
-                                    viewModel.CurrentFrame = frameIndex;
-                                });
-                            }
-                            else
-                            {
-                                FinishReplay();
-                                return;
-                            }
-                        }
-
-                        if (position.HasValue && recordedElapsed.HasValue)
-                        {
-                            MoveAircraft(recordedElapsed.Value, position.Value, lastElapsed, lastPosition, currentElapsed);
-                        }
-                    }
-
-                    Thread.Sleep(16);
-                }
-            });
         }
 
         private void ButtonPauseReplay_Click(object sender, RoutedEventArgs e)
         {
-            if (viewModel.State == State.Replaying)
+            if (recorderLogic.PauseReplay())
             {
-                pausedMilliseconds = stopwatch.ElapsedMilliseconds;
-                pausedFrame = viewModel.CurrentFrame;
                 viewModel.State = State.Pausing;
             }
         }
 
         private void ButtonResumeReplay_Click(object sender, RoutedEventArgs e)
         {
-            if (viewModel.State == State.Pausing)
+            if (recorderLogic.ResumeReplay())
             {
-                if (pausedMilliseconds.HasValue)
-                {
-                    if (viewModel.CurrentFrame == pausedFrame)
-                    {
-                        replayMilliseconds += stopwatch.ElapsedMilliseconds - pausedMilliseconds;
-                    }
-                    else
-                    {
-                        replayMilliseconds = stopwatch.ElapsedMilliseconds - (records[viewModel.CurrentFrame].milliseconds - startMilliseconds);
-                    }
-                    pausedMilliseconds = null;
-                    // NOTE: pausedFrame is not cleared here to allow resuming in the loop
-                }
                 viewModel.State = State.Replaying;
             }
         }
 
         private void ButtonStopReplay_Click(object sender, RoutedEventArgs e)
         {
-            if (viewModel.State == State.Replaying)
+            if (recorderLogic.StopReplay())
             {
-                pausedMilliseconds = null;
-                pausedFrame = null;
-                replayMilliseconds = null;
                 // NOTE: state transit does not happen here, it will hapen when the loop is broken
             }
         }
@@ -270,17 +179,14 @@ namespace FlightRecorder.Client
         {
             if (viewModel.State == State.Pausing)
             {
-                logger.LogDebug("Slide changed to {value}", e.NewValue);
-                var frame = (int)e.NewValue;
-                (var elapsed, var position) = records[frame];
-                MoveAircraft(elapsed, position, null, null, 0);
+                recorderLogic.CurrentFrame = (int)e.NewValue;
             }
 
         }
 
         private void ButtonSave_Click(object sender, RoutedEventArgs e)
         {
-            if (records == null || records.Count == 0 || !startMilliseconds.HasValue || !endMilliseconds.HasValue)
+            if (!recorderLogic.IsEnded || !recorderLogic.IsReplayable)
             {
                 MessageBox.Show("Nothing to save!");
                 return;
@@ -293,7 +199,7 @@ namespace FlightRecorder.Client
             if (dialog.ShowDialog() == true)
             {
                 var version = Assembly.GetEntryAssembly().GetName().Version;
-                var data = new SavedData(version.ToString(), startMilliseconds.Value, endMilliseconds.Value, records);
+                var data = recorderLogic.ToData(version.ToString());
                 var dataString = JsonSerializer.Serialize(data);
 
                 using (var fileStream = new FileStream(dialog.FileName, FileMode.Create))
@@ -342,78 +248,10 @@ namespace FlightRecorder.Client
 
                         var savedData = JsonSerializer.Deserialize<SavedData>(dataString);
 
-                        startMilliseconds = savedData.StartTime;
-                        endMilliseconds = savedData.EndTime;
-                        records = savedData.Records.Select(r => (r.Time, AircraftPosition.ToStruct(r.Position))).ToList();
-                        viewModel.FrameCount = records.Count;
+                        recorderLogic.FromData(savedData);
                     }
                 }
             }
-        }
-
-        private void MoveAircraft(long recordedElapsed, AircraftPositionStruct position, long? lastElapsed, AircraftPositionStruct? lastPosition, long currentElapsed)
-        {
-            logger.LogTrace("Delta time {delta} {current} {recorded}.", currentElapsed - recordedElapsed, currentElapsed, recordedElapsed);
-
-            var nextValue = AircraftPositionStructOperator.ToSet(position);
-            if (lastPosition.HasValue && lastElapsed.HasValue)
-            {
-                var interpolation = (double)(currentElapsed - lastElapsed.Value) / (recordedElapsed - lastElapsed.Value);
-                if (interpolation == 0.5)
-                {
-                    // Edge case: let next value win
-                    interpolation = 0.501;
-                }
-                nextValue = nextValue * interpolation + AircraftPositionStructOperator.ToSet(lastPosition.Value) * (1 - interpolation);
-            }
-            if (currentPosition.HasValue)
-            {
-                connector.TriggerEvents(currentPosition.Value, position);
-            }
-
-            connector.Set(nextValue);
-        }
-
-        private void FinishReplay()
-        {
-            logger.LogDebug("Replay finished.");
-            connector.Unpause();
-            Dispatcher.Invoke(() =>
-            {
-                viewModel.State = State.Idle;
-                viewModel.CurrentFrame = 0;
-            });
-        }
-    }
-
-    public class SavedData
-    {
-        public SavedData()
-        {
-
-        }
-
-        public SavedData(string clientVersion, long startTime, long endTime, List<(long milliseconds, AircraftPositionStruct position)> records)
-        {
-            ClientVersion = clientVersion;
-            StartTime = startTime;
-            EndTime = endTime;
-            Records = records.Select(r => new SavedRecord
-            {
-                Time = r.milliseconds,
-                Position = AircraftPosition.FromStruct(r.position)
-            }).ToList();
-        }
-
-        public string ClientVersion { get; set; }
-        public long StartTime { get; set; }
-        public long EndTime { get; set; }
-        public List<SavedRecord> Records { get; set; }
-
-        public class SavedRecord
-        {
-            public long Time { get; set; }
-            public AircraftPosition Position { get; set; }
         }
     }
 }

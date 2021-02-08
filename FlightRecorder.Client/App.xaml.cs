@@ -1,4 +1,5 @@
-﻿using FlightRecorder.Client.SimConnectMSFS;
+﻿using FlightRecorder.Client.Logics;
+using FlightRecorder.Client.SimConnectMSFS;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using System.Windows;
@@ -49,6 +50,7 @@ namespace FlightRecorder.Client
             });
 
             services.AddSingleton<Connector>();
+            services.AddSingleton<RecorderLogic>();
             services.AddTransient(typeof(MainViewModel));
             services.AddTransient(typeof(MainWindow));
         }
