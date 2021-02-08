@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FlightRecorder.Client"
         mc:Ignorable="d"
-        Title="Flight Recorder" Height="400" Width="300">
+        Title="Flight Recorder" Height="400" Width="350">
     <Grid>
         <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=NotConnected}">
             <TextBlock Text="Cannot connect to SimConnect!" />
@@ -14,22 +14,56 @@
             <TextBlock Text="Connecting to SimConnect..." />
         </StackPanel>
         <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=Connected}">
-            <Button Click="ButtonRecord_Click"
-                IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
-                Record
-            </Button>
-            <Button Click="ButtonStop_Click"
-                IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Recording}">
-                Stop Recording
-            </Button>
-            <Button Click="ButtonReplay_Click"
-                IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
-                Replay
-            </Button>
-            <Button Click="ButtonStopReplay_Click"
-                IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Replaying}">
-                Stop Replaying
-            </Button>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Button Click="ButtonRecord_Click"
+                        Grid.Column="0"
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                    Record
+                </Button>
+                <Button Click="ButtonStop_Click"
+                        Grid.Column="1"
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Recording}">
+                    Stop Recording
+                </Button>
+            </Grid>
+
+            <Slider Maximum="{Binding FrameCount}" Value="{Binding CurrentFrame}" SmallChange="1"
+                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Pausing}"
+                    ValueChanged="Slider_ValueChanged" />
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Button Click="ButtonReplay_Click"
+                        Grid.Column="0"
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                    Replay
+                </Button>
+                <Button Click="ButtonPauseReplay_Click"
+                        Grid.Column="1"
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Replaying}">
+                    Pause Replay
+                </Button>
+                <Button Click="ButtonResumeReplay_Click"
+                        Grid.Column="2"
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Pausing}">
+                    Resume Replay
+                </Button>
+                <Button Click="ButtonStopReplay_Click"
+                        Grid.Column="3"
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Replaying}">
+                    Stop Replay
+                </Button>
+            </Grid>
+
 
             <Button Click="ButtonSave_Click"
                     IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">

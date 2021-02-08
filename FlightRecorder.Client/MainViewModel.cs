@@ -33,6 +33,7 @@ namespace FlightRecorder.Client
         Idle,
         Recording,
         Replaying,
+        Pausing,
     }
 
     public class MainViewModel : BaseViewModel
