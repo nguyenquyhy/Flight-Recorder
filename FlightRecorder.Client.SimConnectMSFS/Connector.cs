@@ -28,10 +28,8 @@ namespace FlightRecorder.Client.SimConnectMSFS
             simconnect.OnRecvOpen += new SimConnect.RecvOpenEventHandler(Simconnect_OnRecvOpen);
             simconnect.OnRecvQuit += new SimConnect.RecvQuitEventHandler(Simconnect_OnRecvQuit);
 
-            // listen to exceptions
             simconnect.OnRecvException += Simconnect_OnRecvException;
             simconnect.OnRecvEvent += Simconnect_OnRecvEvent;
-
             simconnect.OnRecvSimobjectData += Simconnect_OnRecvSimobjectData;
             RegisterAircraftPositionDefinition();
             RegisterAircraftPositionSetDefinition();
@@ -40,8 +38,9 @@ namespace FlightRecorder.Client.SimConnectMSFS
 
             simconnect.OnRecvSystemState += Simconnect_OnRecvSystemState;
 
-            simconnect.MapClientEventToSimEvent(EVENTS.PAUSE, "PAUSE_ON");
-            simconnect.MapClientEventToSimEvent(EVENTS.UNPAUSE, "PAUSE_OFF");
+            simconnect.MapClientEventToSimEvent(EVENTS.FREEZE_LATITUDE_LONGITUDE, "FREEZE_LATITUDE_LONGITUDE_SET");
+            simconnect.MapClientEventToSimEvent(EVENTS.FREEZE_ALTITUDE, "FREEZE_ALTITUDE_SET");
+            simconnect.MapClientEventToSimEvent(EVENTS.FREEZE_ATTITUDE, "FREEZE_ATTITUDE_SET");
             RegisterEvents();
 
             Initialized?.Invoke(this, new());
@@ -49,12 +48,16 @@ namespace FlightRecorder.Client.SimConnectMSFS
 
         public void Pause()
         {
-            //simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.PAUSE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_LATITUDE_LONGITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ALTITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ATTITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
         }
 
         public void Unpause()
         {
-            //simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.UNPAUSE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_LATITUDE_LONGITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ALTITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ATTITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
         }
 
         public void Set(AircraftPositionSetStruct position)

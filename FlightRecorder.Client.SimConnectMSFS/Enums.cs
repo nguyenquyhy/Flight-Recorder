@@ -3,8 +3,9 @@
     enum EVENTS
     {
         GENERIC,
-        PAUSE,
-        UNPAUSE,
+        FREEZE_LATITUDE_LONGITUDE,
+        FREEZE_ALTITUDE,
+        FREEZE_ATTITUDE,
     }
     enum GROUPS
     {
