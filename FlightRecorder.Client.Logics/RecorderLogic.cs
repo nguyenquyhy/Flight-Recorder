@@ -11,6 +11,8 @@ namespace FlightRecorder.Client.Logics
 {
     public class RecorderLogic
     {
+        private const int EventThrottleMilliseconds = 500;
+
         public event EventHandler RecordsUpdated;
         public event EventHandler ReplayFinished;
         public event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
@@ -46,6 +48,7 @@ namespace FlightRecorder.Client.Logics
         private long? pausedMilliseconds;
         private int? pausedFrame;
         private AircraftPositionStruct? currentPosition = null;
+        private long? lastTriggeredMilliseconds = null;
 
         private bool IsStarted => startMilliseconds.HasValue && Records != null;
         public bool IsEnded => startMilliseconds.HasValue && endMilliseconds.HasValue;
@@ -218,7 +221,7 @@ namespace FlightRecorder.Client.Logics
 
                     while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
                     {
-                        logger.LogTrace("Move next.", currentElapsed);
+                        logger.LogTrace("Move next {currentElapsed}", currentElapsed);
                         var canMove = enumerator.MoveNext();
 
                         if (canMove)
@@ -271,8 +274,9 @@ namespace FlightRecorder.Client.Logics
                 }
                 nextValue = nextValue * interpolation + AircraftPositionStructOperator.ToSet(lastPosition.Value) * (1 - interpolation);
             }
-            if (currentPosition.HasValue)
+            if (currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
             {
+                lastTriggeredMilliseconds = stopwatch.ElapsedMilliseconds;
                 connector.TriggerEvents(currentPosition.Value, position);
             }
 
