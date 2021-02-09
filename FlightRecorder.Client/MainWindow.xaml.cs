@@ -21,6 +21,7 @@ namespace FlightRecorder.Client
         private readonly MainViewModel viewModel;
         private readonly Connector connector;
         private readonly RecorderLogic recorderLogic;
+        private readonly string currentVersion;
 
         private IntPtr Handle;
 
@@ -40,6 +41,9 @@ namespace FlightRecorder.Client
             recorderLogic.RecordsUpdated += RecorderLogic_RecordsUpdated;
             recorderLogic.CurrentFrameChanged += RecorderLogic_CurrentFrameChanged;
             recorderLogic.ReplayFinished += RecorderLogic_ReplayFinished;
+
+            currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
+            Title += " " + currentVersion;
         }
 
         private void RecorderLogic_RecordsUpdated(object sender, EventArgs e)
@@ -209,8 +213,7 @@ namespace FlightRecorder.Client
             };
             if (dialog.ShowDialog() == true)
             {
-                var version = Assembly.GetEntryAssembly().GetName().Version;
-                var data = recorderLogic.ToData(version.ToString());
+                var data = recorderLogic.ToData(currentVersion);
                 var dataString = JsonSerializer.Serialize(data);
 
                 using (var fileStream = new FileStream(dialog.FileName, FileMode.Create))
