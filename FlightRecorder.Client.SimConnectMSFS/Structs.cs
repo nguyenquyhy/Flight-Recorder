@@ -75,6 +75,8 @@ namespace FlightRecorder.Client
         public double SpoilerHandlePosition;
         [SimConnectVariable(Name = "GEAR HANDLE POSITION", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32)]
         public uint GearHandlePosition;
+        [SimConnectVariable(Name = "WATER RUDDER HANDLE POSITION", Unit = "Percent Over 100", Type = SIMCONNECT_DATATYPE.FLOAT64)]
+        public double WaterRudderHandlePosition;
 
         [SimConnectVariable(Name = "BRAKE LEFT POSITION", Unit = "Position", Type = SIMCONNECT_DATATYPE.FLOAT64)]
         public double BrakeLeftPosition;
