@@ -1,5 +1,8 @@
 ﻿using FlightRecorder.Client.Logics;
 using FlightRecorder.Client.SimConnectMSFS;
+using Microsoft.AppCenter;
+using Microsoft.AppCenter.Analytics;
+using Microsoft.AppCenter.Crashes;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using System.Windows;
@@ -15,6 +18,8 @@ namespace FlightRecorder.Client
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            AppCenter.Start("5525090f-eddc-4bca-bdd9-5b5fdc301ed0", typeof(Analytics), typeof(Crashes));
+
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
 
