@@ -22,6 +22,7 @@ namespace FlightRecorder.Client.Logics
         private int currentFrame;
         public int CurrentFrame
         {
+            get => currentFrame;
             set
             {
                 if (IsPausing)

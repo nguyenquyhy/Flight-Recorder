@@ -181,7 +181,20 @@ namespace FlightRecorder.Client
             {
                 recorderLogic.CurrentFrame = (int)e.NewValue;
             }
+        }
 
+        private void Slider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            switch (e.Delta)
+            {
+                case > 0:
+                    recorderLogic.CurrentFrame += 1;
+                    break;
+                case < 0:
+                    recorderLogic.CurrentFrame -= 1;
+                    break;
+            }
+            viewModel.CurrentFrame = recorderLogic.CurrentFrame;
         }
 
         private void ButtonSave_Click(object sender, RoutedEventArgs e)
