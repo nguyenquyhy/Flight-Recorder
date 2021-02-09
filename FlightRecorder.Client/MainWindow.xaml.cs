@@ -147,8 +147,6 @@ namespace FlightRecorder.Client
             }
 
             viewModel.State = State.Replaying;
-
-
         }
 
         private void ButtonPauseReplay_Click(object sender, RoutedEventArgs e)
@@ -265,6 +263,12 @@ namespace FlightRecorder.Client
                     }
                 }
             }
+        }
+
+        private void ButtonShowData_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.ShowData = !viewModel.ShowData;
+            Height = viewModel.ShowData ? 350 : 225;
         }
     }
 }

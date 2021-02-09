@@ -52,5 +52,8 @@ namespace FlightRecorder.Client
 
         private int currentFrame;
         public int CurrentFrame { get => currentFrame; set => SetProperty(ref currentFrame, value); }
+
+        private bool showData;
+        public bool ShowData { get => showData; set => SetProperty(ref showData, value); }
     }
 }
