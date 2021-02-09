@@ -7,7 +7,11 @@ namespace FlightRecorder.Client.Generators
 {
     public abstract class BaseGenerator
     {
-        protected IEnumerable<(string type, string name, string variable, string unit, int dataType, string setEventName)> GetAircraftFields(GeneratorExecutionContext context)
+        protected const int SetTypeDefault = 0; // TODO: replace 0
+        protected const int SetTypeEvent = 1;
+        protected const int SetTypeNone = 2;
+
+        protected IEnumerable<(string type, string name, string variable, string unit, int dataType, int? setType, string setEventName)> GetAircraftFields(GeneratorExecutionContext context)
         {
             //var libraryContext = context.Compilation.References.FirstOrDefault(r => r.Display == "FlightRecorder.Client.SimConnectMSFS") as CompilationReference;
             var libraryContext = context;
@@ -35,8 +39,9 @@ namespace FlightRecorder.Client.Generators
                                     var variable = args.First(arg => arg.Key == "Name").Value.Value as string;
                                     var unit = args.First(arg => arg.Key == "Unit").Value.Value as string;
                                     var type = args.First(arg => arg.Key == "Type").Value.Value as int?;
+                                    var setType = args.FirstOrDefault(arg => arg.Key == "SetType").Value.Value as int?;
                                     var setBy = args.Any(args => args.Key == "SetByEvent") ? args.First(arg => arg.Key == "SetByEvent").Value.Value as string : null;
-                                    yield return (predefinedType.Keyword.ValueText, field.Declaration.Variables[0].Identifier.ValueText, variable, unit, type.Value, setBy);
+                                    yield return (predefinedType.Keyword.ValueText, field.Declaration.Variables[0].Identifier.ValueText, variable, unit, type.Value, setType, setBy);
                                 }
                             }
                         }

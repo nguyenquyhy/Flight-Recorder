@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FlightRecorder.Client"
         mc:Ignorable="d"
-        Title="Flight Recorder" Height="225" Width="450">
+        Title="Flight Recorder" Height="225" d:Height="500" Width="450">
     <Window.Resources>
         <Style x:Key="SeparatorStyle" TargetType="Rectangle">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -128,6 +128,7 @@
                         <RowDefinition />
                         <RowDefinition />
                         <RowDefinition />
+                        <RowDefinition />
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="Latitude" Grid.Row="0" Grid.Column="0" />
@@ -148,6 +149,8 @@
 
                     <TextBlock Text="Gear Handle" Grid.Row="7" Grid.Column="0" />
                     <TextBlock Text="{Binding GearHandlePosition}" Grid.Row="7" Grid.Column="1" />
+                    <TextBlock Text="Is On Ground" Grid.Row="8" Grid.Column="0" />
+                    <TextBlock Text="{Binding IsOnGround}" Grid.Row="8" Grid.Column="1" />
                 </Grid>
             </Grid>
         </StackPanel>

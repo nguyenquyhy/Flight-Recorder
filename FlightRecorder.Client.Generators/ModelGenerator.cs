@@ -37,7 +37,7 @@ namespace FlightRecorder.Client
         public static partial AircraftPosition FromStruct(AircraftPositionStruct s)
             => new AircraftPosition
             {");
-            foreach ((_, var name, _, _, _, _) in fields)
+            foreach ((_, var name, _, _, _, _, _) in fields)
             {
                 builder.Append($@"
                 {name} = s.{name},");
@@ -50,7 +50,7 @@ namespace FlightRecorder.Client
         public static partial AircraftPositionStruct ToStruct(AircraftPosition s)
             => new AircraftPositionStruct
             {");
-            foreach ((_, var name, _, _, _, _) in fields)
+            foreach ((_, var name, _, _, _, _, _) in fields)
             {
                 builder.Append($@"
                 {name} = s.{name},");
@@ -59,7 +59,7 @@ namespace FlightRecorder.Client
             };
 ");
 
-            foreach ((var type, var name, _, _, _, _) in fields)
+            foreach ((var type, var name, _, _, _, _, _) in fields)
             {
                 builder.Append($@"
         public {type} {name} {{ get; set; }}");

@@ -27,7 +27,7 @@ namespace FlightRecorder.Client.Generators
             AddOperator(context, fields);
         }
 
-        private static void AddSetStruct(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, string setByEvent)> fields)
+        private static void AddSetStruct(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent)> fields)
         {
             var builder = new StringBuilder();
             builder.Append(@"
@@ -39,9 +39,9 @@ namespace FlightRecorder.Client
     public partial struct AircraftPositionSetStruct
     {");
 
-            foreach ((var type, var name, _, _, _, var e) in fields)
+            foreach ((var type, var name, _, _, _, var setType, _) in fields)
             {
-                if (string.IsNullOrEmpty(e))
+                if (setType == null || setType == SetTypeDefault)
                 {
                     builder.Append($@"
         public {type} {name};");
@@ -55,7 +55,7 @@ namespace FlightRecorder.Client
             context.AddSource("SetStruct", SourceText.From(builder.ToString(), Encoding.UTF8));
         }
 
-        private static void AddOperator(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, string setByEvent)> fields)
+        private static void AddOperator(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent)> fields)
         {
             var builder = new StringBuilder();
             builder.Append(@"
@@ -71,9 +71,9 @@ namespace FlightRecorder.Client
         public static partial AircraftPositionSetStruct ToSet(AircraftPositionStruct variables)
             => new AircraftPositionSetStruct
             {");
-            foreach ((_, var name, _, _, _, var e) in fields)
+            foreach ((_, var name, _, _, _, var setType, _) in fields)
             {
-                if (string.IsNullOrEmpty(e))
+                if (setType == null || setType == SetTypeDefault)
                 {
                     builder.Append($@"
                 {name} = variables.{name},");
@@ -87,9 +87,9 @@ namespace FlightRecorder.Client
         public static partial AircraftPositionSetStruct Add(AircraftPositionSetStruct position1, AircraftPositionSetStruct position2)
             => new AircraftPositionSetStruct
             {");
-            foreach ((_, var name, _, _, _, var e) in fields)
+            foreach ((_, var name, _, _, _, var setType, _) in fields)
             {
-                if (string.IsNullOrEmpty(e))
+                if (setType == null || setType == SetTypeDefault)
                 {
                     builder.Append($@"
                 {name} = position1.{name} + position2.{name},");
@@ -104,9 +104,9 @@ namespace FlightRecorder.Client
         public static partial AircraftPositionSetStruct Scale(AircraftPositionSetStruct position, double factor)
             => new AircraftPositionSetStruct
             {");
-            foreach ((var type, var name, _, _, _, var e) in fields)
+            foreach ((var type, var name, _, _, _, var setType, _) in fields)
             {
-                if (string.IsNullOrEmpty(e))
+                if (setType == null || setType == SetTypeDefault)
                 {
                     switch (type)
                     {

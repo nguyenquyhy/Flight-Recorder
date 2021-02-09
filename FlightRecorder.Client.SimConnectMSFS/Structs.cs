@@ -77,27 +77,46 @@ namespace FlightRecorder.Client
         [SimConnectVariable(Name = "BRAKE RIGHT POSITION", Unit = "Position", Type = SIMCONNECT_DATATYPE.FLOAT64)]
         public double BrakeRightPosition;
 
-        [SimConnectVariable(Name = "BRAKE PARKING POSITION", Unit = "Position", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "PARKING_BRAKES")]
+        // Some variables that can only be set by triggering events
+        [SimConnectVariable(Name = "BRAKE PARKING POSITION", Unit = "Position", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "PARKING_BRAKES")]
         public uint BrakeParkingPosition;
 
-        [SimConnectVariable(Name = "LIGHT TAXI ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "TOGGLE_TAXI_LIGHTS")]
+        [SimConnectVariable(Name = "LIGHT TAXI ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "TOGGLE_TAXI_LIGHTS")]
         public uint LightTaxi;
-        [SimConnectVariable(Name = "LIGHT LANDING ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "LANDING_LIGHTS_TOGGLE")]
+        [SimConnectVariable(Name = "LIGHT LANDING ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "LANDING_LIGHTS_TOGGLE")]
         public uint LightLanding;
-        [SimConnectVariable(Name = "LIGHT STROBE ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "STROBES_TOGGLE")]
+        [SimConnectVariable(Name = "LIGHT STROBE ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "STROBES_TOGGLE")]
         public uint LightStrobe;
-        [SimConnectVariable(Name = "LIGHT BEACON ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "TOGGLE_BEACON_LIGHTS")]
+        [SimConnectVariable(Name = "LIGHT BEACON ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "TOGGLE_BEACON_LIGHTS")]
         public uint LightBeacon;
-        [SimConnectVariable(Name = "LIGHT NAV ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "TOGGLE_NAV_LIGHTS")]
+        [SimConnectVariable(Name = "LIGHT NAV ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "TOGGLE_NAV_LIGHTS")]
         public uint LightNav;
-        [SimConnectVariable(Name = "LIGHT WING ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "TOGGLE_WING_LIGHTS")]
+        [SimConnectVariable(Name = "LIGHT WING ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "TOGGLE_WING_LIGHTS")]
         public uint LightWing;
-        [SimConnectVariable(Name = "LIGHT LOGO ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "TOGGLE_LOGO_LIGHTS")]
+        [SimConnectVariable(Name = "LIGHT LOGO ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "TOGGLE_LOGO_LIGHTS")]
         public uint LightLogo;
-        [SimConnectVariable(Name = "LIGHT RECOGNITION ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "TOGGLE_RECOGNITION_LIGHTS")]
+        [SimConnectVariable(Name = "LIGHT RECOGNITION ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "TOGGLE_RECOGNITION_LIGHTS")]
         public uint LightRecognition;
-        [SimConnectVariable(Name = "LIGHT CABIN ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetByEvent = "TOGGLE_CABIN_LIGHTS")]
+        [SimConnectVariable(Name = "LIGHT CABIN ON", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.Event, SetByEvent = "TOGGLE_CABIN_LIGHTS")]
         public uint LightCabin;
+
+        // Some variables that are only for info and display
+        [SimConnectVariable(Name = "SIMULATION RATE", Unit = "Number", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.None)]
+        public uint SimulationRate;
+        [SimConnectVariable(Name = "ABSOLUTE TIME", Unit = "Seconds", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double AbsoluteTime;
+        [SimConnectVariable(Name = "PLANE ALT ABOVE GROUND", Unit = "Feet", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double AltitudeAboveGround;
+        [SimConnectVariable(Name = "SIM ON GROUND", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.None)]
+        public uint IsOnGround;
+        [SimConnectVariable(Name = "AMBIENT WIND VELOCITY", Unit = "Knots", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double WindVelocity;
+        [SimConnectVariable(Name = "AMBIENT WIND DIRECTION", Unit = "Degrees", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double WindDirection;
+        [SimConnectVariable(Name = "G FORCE", Unit = "GForce", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double GForce;
+        [SimConnectVariable(Name = "PLANE TOUCHDOWN NORMAL VELOCITY", Unit = "Feet per minute", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double TouchdownNormalVelocity;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
