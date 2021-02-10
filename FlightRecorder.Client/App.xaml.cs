@@ -14,6 +14,7 @@ namespace FlightRecorder.Client
     /// </summary>
     public partial class App : Application
     {
+        private ServiceProvider serviceProvider;
         private MainWindow mainWindow;
 
         protected override void OnStartup(StartupEventArgs e)
@@ -23,7 +24,7 @@ namespace FlightRecorder.Client
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
 
-            var serviceProvider = serviceCollection.BuildServiceProvider();
+            serviceProvider = serviceCollection.BuildServiceProvider();
 
             mainWindow = serviceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
@@ -35,6 +36,11 @@ namespace FlightRecorder.Client
             {
                 Log.CloseAndFlush();
             }
+            try
+            {
+                serviceProvider?.GetService<Connector>()?.Unpause();
+            }
+            catch { }
             base.OnExit(e);
         }
 
