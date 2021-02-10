@@ -56,6 +56,7 @@ namespace FlightRecorder.Client
 
             services.AddSingleton<Connector>();
             services.AddSingleton<RecorderLogic>();
+            services.AddSingleton<ImageLogic>();
             services.AddTransient(typeof(MainViewModel));
             services.AddTransient(typeof(MainWindow));
         }

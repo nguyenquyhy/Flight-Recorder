@@ -109,7 +109,6 @@ namespace FlightRecorder.Client.Logics
                 return false;
             }
 
-
             logger.LogInformation("Start replay...");
 
             replayMilliseconds = stopwatch.ElapsedMilliseconds;
@@ -219,27 +218,32 @@ namespace FlightRecorder.Client.Logics
 
                     var currentElapsed = stopwatch.ElapsedMilliseconds - replayStartTime.Value;
 
-                    while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
+                    try
                     {
-                        logger.LogTrace("Move next {currentElapsed}", currentElapsed);
-                        var canMove = enumerator.MoveNext();
-
-                        if (canMove)
+                        while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
                         {
-                            currentFrame++;
-                            (var recordedMilliseconds, var recordedPosition) = enumerator.Current;
-                            lastElapsed = recordedElapsed;
-                            lastPosition = position;
-                            recordedElapsed = recordedMilliseconds - startMilliseconds;
-                            position = recordedPosition;
+                            logger.LogTrace("Move next {currentElapsed}", currentElapsed);
+                            var canMove = enumerator.MoveNext();
 
-                            CurrentFrameChanged?.Invoke(this, new CurrentFrameChangedEventArgs(currentFrame));
+                            if (canMove)
+                            {
+                                currentFrame++;
+                                (var recordedMilliseconds, var recordedPosition) = enumerator.Current;
+                                lastElapsed = recordedElapsed;
+                                lastPosition = position;
+                                recordedElapsed = recordedMilliseconds - startMilliseconds;
+                                position = recordedPosition;
+                            }
+                            else
+                            {
+                                FinishReplay();
+                                return;
+                            }
                         }
-                        else
-                        {
-                            FinishReplay();
-                            return;
-                        }
+                    }
+                    finally
+                    {
+                        CurrentFrameChanged?.Invoke(this, new CurrentFrameChangedEventArgs(currentFrame));
                     }
 
                     if (position.HasValue && recordedElapsed.HasValue)

@@ -6,9 +6,13 @@ using Microsoft.Win32;
 using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace FlightRecorder.Client
 {
@@ -21,11 +25,12 @@ namespace FlightRecorder.Client
         private readonly MainViewModel viewModel;
         private readonly Connector connector;
         private readonly RecorderLogic recorderLogic;
+        private readonly ImageLogic imageLogic;
         private readonly string currentVersion;
 
         private IntPtr Handle;
 
-        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, RecorderLogic recorderLogic)
+        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, RecorderLogic recorderLogic, ImageLogic imageLogic)
         {
             InitializeComponent();
 
@@ -34,6 +39,7 @@ namespace FlightRecorder.Client
             this.viewModel = viewModel;
             this.connector = connector;
             this.recorderLogic = recorderLogic;
+            this.imageLogic = imageLogic;
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
 
             DataContext = viewModel;
@@ -134,12 +140,14 @@ namespace FlightRecorder.Client
         {
             recorderLogic.Start();
             viewModel.State = State.Recording;
+            viewModel.CurrentFrame = 0;
         }
 
         private void ButtonStop_Click(object sender, RoutedEventArgs e)
         {
             recorderLogic.StopRecording();
             viewModel.State = State.Idle;
+            Draw();
         }
 
         private void ButtonReplay_Click(object sender, RoutedEventArgs e)
@@ -183,6 +191,7 @@ namespace FlightRecorder.Client
             {
                 recorderLogic.CurrentFrame = (int)e.NewValue;
             }
+            Draw();
         }
 
         private void Slider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
@@ -263,6 +272,8 @@ namespace FlightRecorder.Client
                         var savedData = JsonSerializer.Deserialize<SavedData>(dataString);
 
                         recorderLogic.FromData(savedData);
+
+                        Draw();
                     }
                 }
             }
@@ -271,7 +282,79 @@ namespace FlightRecorder.Client
         private void ButtonShowData_Click(object sender, RoutedEventArgs e)
         {
             viewModel.ShowData = !viewModel.ShowData;
-            Height = viewModel.ShowData ? 380 : 225;
+            Height = viewModel.ShowData ? 420 : 275;
+        }
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            Draw();
+        }
+
+        private void Draw()
+        {
+            var width = (int)ImageWrapper.ActualWidth;
+            var height = (int)ImageWrapper.ActualHeight;
+            var currentFrame = viewModel.CurrentFrame;
+            Task.Run(() =>
+            {
+                try
+                {
+                    var image = imageLogic.Draw(width, height, recorderLogic.Records, currentFrame);
+
+                    if (image != null)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            try
+                            {
+                                var bmp = new WriteableBitmap(image.Width, image.Height, image.Metadata.HorizontalResolution, image.Metadata.VerticalResolution, PixelFormats.Bgra32, null);
+
+                                bmp.Lock();
+                                try
+                                {
+                                    var backBuffer = bmp.BackBuffer;
+
+                                    for (var y = 0; y < image.Height; y++)
+                                    {
+                                        var buffer = image.GetPixelRowSpan(y);
+                                        for (var x = 0; x < image.Width; x++)
+                                        {
+                                            var backBufferPos = backBuffer + (y * image.Width + x) * 4;
+                                            var rgba = buffer[x];
+                                            var color = rgba.A << 24 | rgba.R << 16 | rgba.G << 8 | rgba.B;
+
+                                            Marshal.WriteInt32(backBufferPos, color);
+                                        }
+                                    }
+
+                                    bmp.AddDirtyRect(new Int32Rect(0, 0, image.Width, image.Height));
+                                }
+                                finally
+                                {
+                                    bmp.Unlock();
+                                    ImageChart.Source = bmp;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+#if DEBUG
+                                logger.LogError(ex, "Cannot convert to WriteableBitmap");
+#endif
+                            }
+                            finally
+                            {
+                                image.Dispose();
+                            }
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+#if DEBUG
+                    logger.LogError(ex, "Cannot draw");
+#endif
+                }
+            });
         }
     }
 }
