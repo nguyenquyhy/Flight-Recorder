@@ -125,8 +125,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
             // 0xC000014B: CTD
             // 0xC00000B0: Sim has exited
             logger.LogError(exception, "Cannot receive SimConnect message!");
-            //CloseConnection();
-            Closed?.Invoke(this, new());
+            CloseConnection();
         }
 
         void Simconnect_OnRecvOpen(SimConnect sender, SIMCONNECT_RECV_OPEN data)
@@ -138,8 +137,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
         void Simconnect_OnRecvQuit(SimConnect sender, SIMCONNECT_RECV data)
         {
             logger.LogInformation("Flight Simulator has exited");
-            Closed?.Invoke(this, new());
-            //CloseConnection();
+            CloseConnection();
         }
 
         void Simconnect_OnRecvException(SimConnect sender, SIMCONNECT_RECV_EXCEPTION data)
@@ -184,6 +182,21 @@ namespace FlightRecorder.Client.SimConnectMSFS
                 simconnect.AddToDataDefinition(definition, datumName, unitsName, datumType, 0.0f, SimConnect.SIMCONNECT_UNUSED);
             }
             simconnect.RegisterDataDefineStruct<T>(definition);
+        }
+
+        private void CloseConnection()
+        {
+            try
+            {
+                // Dispose serves the same purpose as SimConnect_Close()
+                simconnect?.Dispose();
+                simconnect = null;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, $"Cannot unsubscribe events! Error: {ex.Message}");
+            }
+            Closed?.Invoke(this, new());
         }
 
         #endregion

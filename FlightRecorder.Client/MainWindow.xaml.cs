@@ -41,6 +41,7 @@ namespace FlightRecorder.Client
             this.recorderLogic = recorderLogic;
             this.imageLogic = imageLogic;
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
+            connector.Closed += Connector_Closed;
 
             DataContext = viewModel;
 
@@ -85,32 +86,7 @@ namespace FlightRecorder.Client
             Handle = new WindowInteropHelper(sender as Window).Handle; // Get handle of main WPF Window
             var HandleSource = HwndSource.FromHwnd(Handle); // Get source of handle in order to add event handlers to it
             HandleSource.AddHook(HandleHook);
-
-            try
-            {
-                connector.Initialize(Handle);
-
-                Dispatcher.Invoke(() =>
-                {
-                    viewModel.SimConnectState = SimConnectState.Connected;
-                });
-            }
-            catch (BadImageFormatException ex)
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    MessageBox.Show("Cannot initialize SimConnect");
-                    viewModel.SimConnectState = SimConnectState.Failed;
-                });
-            }
-            catch
-            {
-                viewModel.SimConnectState = SimConnectState.NotConnected;
-
-                // TODO: retry
-            }
-
-            recorderLogic.Initialize();
+            InitializeConnector();
         }
 
         private IntPtr HandleHook(IntPtr hWnd, int message, IntPtr wParam, IntPtr lParam, ref bool isHandled)
@@ -134,6 +110,12 @@ namespace FlightRecorder.Client
             {
                 viewModel.AircraftPosition = AircraftPosition.FromStruct(e.Position);
             });
+        }
+
+        private void Connector_Closed(object sender, EventArgs e)
+        {
+            logger.LogDebug("Start reconnecting...");
+            InitializeConnector();
         }
 
         private void ButtonRecord_Click(object sender, RoutedEventArgs e)
@@ -288,6 +270,35 @@ namespace FlightRecorder.Client
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             Draw();
+        }
+
+        private void InitializeConnector()
+        {
+            Dispatcher.Invoke(async () =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        connector.Initialize(Handle);
+                        viewModel.SimConnectState = SimConnectState.Connected;
+                        recorderLogic.Initialize();
+                        break;
+                    }
+                    catch (BadImageFormatException)
+                    {
+                        MessageBox.Show("Cannot initialize SimConnect!");
+                        viewModel.SimConnectState = SimConnectState.Failed;
+                        break;
+                    }
+                    catch (COMException ex)
+                    {
+                        logger.LogTrace(ex, "SimConnect error.");
+                        viewModel.SimConnectState = SimConnectState.NotConnected;
+                        await Task.Delay(5000).ConfigureAwait(true);
+                    }
+                }
+            });
         }
 
         private void Draw()
