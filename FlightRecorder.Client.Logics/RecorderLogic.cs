@@ -53,8 +53,8 @@ namespace FlightRecorder.Client.Logics
         private bool IsStarted => startMilliseconds.HasValue && Records != null;
         public bool IsEnded => startMilliseconds.HasValue && endMilliseconds.HasValue;
         public bool IsReplayable => Records != null && Records.Count > 0;
-        private bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
-        private bool IsPausing => pausedMilliseconds != null;
+        public bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
+        public bool IsPausing => pausedMilliseconds != null;
 
         public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; }
         public AircraftPositionStruct? CurrentPosition

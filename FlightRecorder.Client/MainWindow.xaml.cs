@@ -63,10 +63,17 @@ namespace FlightRecorder.Client
 
         private void RecorderLogic_CurrentFrameChanged(object sender, CurrentFrameChangedEventArgs e)
         {
-            Dispatcher.Invoke(() =>
+            try
             {
-                viewModel.CurrentFrame = e.CurrentFrame;
-            });
+                Dispatcher.Invoke(() =>
+                {
+                    viewModel.CurrentFrame = e.CurrentFrame;
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                // Exiting
+            }
         }
 
         private void RecorderLogic_ReplayFinished(object sender, EventArgs e)

@@ -32,15 +32,25 @@ namespace FlightRecorder.Client
 
         protected override void OnExit(ExitEventArgs e)
         {
+            try
+            {
+                var recorderLogic = serviceProvider?.GetService<RecorderLogic>();
+                var connector = serviceProvider?.GetService<Connector>();
+                if (recorderLogic != null && connector != null && (recorderLogic.IsReplaying || recorderLogic.IsPausing))
+                {
+                    connector.Unpause();
+                }
+            }
+            catch
+            {
+                // Ignore
+            }
+
             if (Log.Logger != null)
             {
                 Log.CloseAndFlush();
             }
-            try
-            {
-                serviceProvider?.GetService<Connector>()?.Unpause();
-            }
-            catch { }
+
             base.OnExit(e);
         }
 
