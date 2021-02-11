@@ -6,6 +6,7 @@
         FREEZE_LATITUDE_LONGITUDE,
         FREEZE_ALTITUDE,
         FREEZE_ATTITUDE,
+        FRAME,
     }
     enum GROUPS
     {

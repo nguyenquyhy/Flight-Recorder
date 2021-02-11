@@ -10,6 +10,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
 
         public event EventHandler<AircraftPositionUpdatedEventArgs> AircraftPositionUpdated;
         public event EventHandler Initialized;
+        public event EventHandler Frame;
         public event EventHandler<ConnectorErrorEventArgs> Error;
         public event EventHandler Closed;
 
@@ -34,7 +35,10 @@ namespace FlightRecorder.Client.SimConnectMSFS
             RegisterAircraftPositionDefinition();
             RegisterAircraftPositionSetDefinition();
 
+            simconnect.OnRecvEventFrame += Simconnect_OnRecvEventFrame;
+
             //simconnect.SubscribeToSystemEvent(EVENTS.POSITION_CHANGED, "PositionChanged");
+            simconnect.SubscribeToSystemEvent(EVENTS.FRAME, "Frame");
 
             simconnect.OnRecvSystemState += Simconnect_OnRecvSystemState;
 
@@ -175,6 +179,12 @@ namespace FlightRecorder.Client.SimConnectMSFS
         private void Simconnect_OnRecvSystemState(SimConnect sender, SIMCONNECT_RECV_SYSTEM_STATE data)
         {
             logger.LogDebug("OnRecvSystemState dwRequestID {dwRequestID}", (DATA_REQUESTS)data.dwRequestID);
+        }
+
+        private void Simconnect_OnRecvEventFrame(SimConnect sender, SIMCONNECT_RECV_EVENT_FRAME data)
+        {
+            logger.LogTrace("Frame: {simSpeed} {frameRate}", data.fSimSpeed, data.fFrameRate);
+            Frame?.Invoke(this, new EventArgs());
         }
 
         private void RegisterDataDefinition<T>(DEFINITIONS definition, params (string datumName, string unitsName, SIMCONNECT_DATATYPE datumType)[] data)

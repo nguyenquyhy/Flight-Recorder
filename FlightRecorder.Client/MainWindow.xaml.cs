@@ -41,6 +41,7 @@ namespace FlightRecorder.Client
             this.recorderLogic = recorderLogic;
             this.imageLogic = imageLogic;
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
+            connector.Frame += Connector_Frame;
             connector.Closed += Connector_Closed;
 
             DataContext = viewModel;
@@ -117,6 +118,11 @@ namespace FlightRecorder.Client
             {
                 viewModel.AircraftPosition = AircraftPosition.FromStruct(e.Position);
             });
+        }
+
+        private void Connector_Frame(object sender, EventArgs e)
+        {
+            recorderLogic.Tick();
         }
 
         private void Connector_Closed(object sender, EventArgs e)

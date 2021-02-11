@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace FlightRecorder.Client.Logics
@@ -47,8 +46,11 @@ namespace FlightRecorder.Client.Logics
         private long? replayMilliseconds;
         private long? pausedMilliseconds;
         private int? pausedFrame;
+        private bool isReplayStopping;
+
         private AircraftPositionStruct? currentPosition = null;
         private long? lastTriggeredMilliseconds = null;
+        private TaskCompletionSource<bool> tcs;
 
         private bool IsStarted => startMilliseconds.HasValue && Records != null;
         public bool IsEnded => startMilliseconds.HasValue && endMilliseconds.HasValue;
@@ -158,9 +160,7 @@ namespace FlightRecorder.Client.Logics
         {
             if (IsReplaying)
             {
-                pausedMilliseconds = null;
-                pausedFrame = null;
-                replayMilliseconds = null;
+                isReplayStopping = true;
 
                 return true;
             }
@@ -178,11 +178,19 @@ namespace FlightRecorder.Client.Logics
             RecordsUpdated?.Invoke(this, new EventArgs());
         }
 
+        public void Tick()
+        {
+            if (IsReplaying)
+            {
+                tcs?.SetResult(true);
+            }
+        }
+
         #endregion
 
         #region Private Functions
 
-        private void RunReplay()
+        private async Task RunReplay()
         {
             connector.Pause();
 
@@ -197,67 +205,81 @@ namespace FlightRecorder.Client.Logics
 
             while (true)
             {
-                var replayStartTime = replayMilliseconds;
-                if (replayStartTime == null)
+                // Wait for tick call from the sim frame
+                tcs = new TaskCompletionSource<bool>();
+                await tcs.Task;
+                tcs = null;
+
+                if (isReplayStopping)
                 {
                     FinishReplay();
                     return;
                 }
 
-                if (pausedMilliseconds == null)
+                var replayStartTime = replayMilliseconds;
+                if (replayStartTime == null || pausedMilliseconds != null)
                 {
-                    if (pausedFrame != null && pausedFrame != currentFrame)
-                    {
-                        // Reset the enumerator since user might seek backward
-                        enumerator = Records.GetEnumerator();
-                        currentFrame = 0;
-                        recordedElapsed = null;
-                        position = null;
-                        pausedFrame = null;
-                    }
-
-                    var currentElapsed = stopwatch.ElapsedMilliseconds - replayStartTime.Value;
-
-                    try
-                    {
-                        while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
-                        {
-                            logger.LogTrace("Move next {currentElapsed}", currentElapsed);
-                            var canMove = enumerator.MoveNext();
-
-                            if (canMove)
-                            {
-                                currentFrame++;
-                                (var recordedMilliseconds, var recordedPosition) = enumerator.Current;
-                                lastElapsed = recordedElapsed;
-                                lastPosition = position;
-                                recordedElapsed = recordedMilliseconds - startMilliseconds;
-                                position = recordedPosition;
-                            }
-                            else
-                            {
-                                FinishReplay();
-                                return;
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        CurrentFrameChanged?.Invoke(this, new CurrentFrameChangedEventArgs(currentFrame));
-                    }
-
-                    if (position.HasValue && recordedElapsed.HasValue)
-                    {
-                        MoveAircraft(recordedElapsed.Value, position.Value, lastElapsed, lastPosition, currentElapsed);
-                    }
+                    // Paused or stopped
+                    return;
                 }
 
-                Thread.Sleep(16);
+                if (pausedFrame != null && pausedFrame != currentFrame)
+                {
+                    // Reset the enumerator since user might seek backward
+                    enumerator = Records.GetEnumerator();
+                    currentFrame = 0;
+                    recordedElapsed = null;
+                    position = null;
+                    pausedFrame = null;
+                }
+
+                var currentElapsed = stopwatch.ElapsedMilliseconds - replayStartTime.Value;
+
+                try
+                {
+                    while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
+                    {
+                        logger.LogTrace("Move next {currentElapsed}", currentElapsed);
+                        var canMove = enumerator.MoveNext();
+
+                        if (canMove)
+                        {
+                            currentFrame++;
+                            (var recordedMilliseconds, var recordedPosition) = enumerator.Current;
+                            lastElapsed = recordedElapsed;
+                            lastPosition = position;
+                            recordedElapsed = recordedMilliseconds - startMilliseconds;
+                            position = recordedPosition;
+                        }
+                        else
+                        {
+                            // Last frame
+                            FinishReplay();
+                            return;
+                        }
+                    }
+                }
+                finally
+                {
+                    CurrentFrameChanged?.Invoke(this, new CurrentFrameChangedEventArgs(currentFrame));
+                }
+
+                if (position.HasValue && recordedElapsed.HasValue)
+                {
+                    MoveAircraft(recordedElapsed.Value, position.Value, lastElapsed, lastPosition, currentElapsed);
+                }
             }
         }
 
         private void FinishReplay()
         {
+            isReplayStopping = false;
+
+            // Reset
+            pausedMilliseconds = null;
+            pausedFrame = null;
+            replayMilliseconds = null;
+
             logger.LogInformation("Replay finished.");
             connector.Unpause();
             ReplayFinished?.Invoke(this, new EventArgs());
