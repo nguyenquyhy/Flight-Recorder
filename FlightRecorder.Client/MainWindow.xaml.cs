@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -26,11 +27,12 @@ namespace FlightRecorder.Client
         private readonly Connector connector;
         private readonly RecorderLogic recorderLogic;
         private readonly ImageLogic imageLogic;
+        private readonly ExportLogic exportLogic;
         private readonly string currentVersion;
 
         private IntPtr Handle;
 
-        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, RecorderLogic recorderLogic, ImageLogic imageLogic)
+        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, RecorderLogic recorderLogic, ImageLogic imageLogic, ExportLogic exportLogic)
         {
             InitializeComponent();
 
@@ -40,6 +42,7 @@ namespace FlightRecorder.Client
             this.connector = connector;
             this.recorderLogic = recorderLogic;
             this.imageLogic = imageLogic;
+            this.exportLogic = exportLogic;
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
             connector.Frame += Connector_Frame;
             connector.Closed += Connector_Closed;
@@ -238,6 +241,31 @@ namespace FlightRecorder.Client
 
                     outStream.Finish();
                 }
+
+                logger.LogDebug("Save file into {fileName}", dialog.FileName);
+            }
+        }
+
+        private async void ButtonExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (!recorderLogic.IsEnded || !recorderLogic.IsReplayable)
+            {
+                MessageBox.Show("Nothing to export!");
+                return;
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                FileName = $"Export {DateTime.Now:yyyy-MM-dd-HH-mm}.csv"
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                await exportLogic.ExportAsync(dialog.FileName, recorderLogic.Records.Select(o =>
+                {
+                    var result = AircraftPosition.FromStruct(o.position);
+                    result.Milliseconds = o.milliseconds;
+                    return result;
+                }));
 
                 logger.LogDebug("Save file into {fileName}", dialog.FileName);
             }

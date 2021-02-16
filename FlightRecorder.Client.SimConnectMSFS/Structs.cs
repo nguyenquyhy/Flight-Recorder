@@ -152,13 +152,4 @@ namespace FlightRecorder.Client
         public static partial AircraftPositionSetStruct Add(AircraftPositionSetStruct position1, AircraftPositionSetStruct position2);
         public static partial AircraftPositionSetStruct Scale(AircraftPositionSetStruct position, double factor);
     }
-
-    /// <summary>
-    /// This class is auto-generated to converter fields in the struct into properties.
-    /// </summary>
-    public partial class AircraftPosition
-    {
-        public static partial AircraftPosition FromStruct(AircraftPositionStruct s);
-        public static partial AircraftPositionStruct ToStruct(AircraftPosition s);
-    }
 }

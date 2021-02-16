@@ -101,14 +101,20 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
                     <ColumnDefinition />
+                    <ColumnDefinition />
                 </Grid.ColumnDefinitions>
                 <Button Click="ButtonSave_Click"
                         Grid.Column="0"
                         IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
                     Save
                 </Button>
-                <Button Click="ButtonLoad_Click"
+                <Button Click="ButtonExport_Click"
                         Grid.Column="1"
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                    Export
+                </Button>
+                <Button Click="ButtonLoad_Click"
+                        Grid.Column="2"
                         IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
                     Load
                 </Button>
