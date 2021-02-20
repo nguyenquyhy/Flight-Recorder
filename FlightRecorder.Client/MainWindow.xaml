@@ -42,7 +42,7 @@
 
             <Rectangle Style="{StaticResource SeparatorStyle}" />
 
-            <Slider Maximum="{Binding FrameCount}" Value="{Binding CurrentFrame}" SmallChange="1"
+            <Slider Maximum="{Binding FrameCount, Converter={StaticResource AdditionConverter}, ConverterParameter=-1}" Value="{Binding CurrentFrame}" SmallChange="1"
                     IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Pausing}"
                     ValueChanged="Slider_ValueChanged" MouseWheel="Slider_MouseWheel" />
             <Grid x:Name="ImageWrapper" Height="50" HorizontalAlignment="Stretch" Margin="5,0">
@@ -57,7 +57,7 @@
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
                     <TextBlock Text="Current: " />
-                    <TextBlock Text="{Binding CurrentFrame}" />
+                    <TextBlock Text="{Binding CurrentFrame, Converter={StaticResource AdditionConverter}, ConverterParameter=1}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">

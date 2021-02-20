@@ -185,25 +185,28 @@ namespace FlightRecorder.Client
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (viewModel.State == State.Pausing)
-            {
-                recorderLogic.CurrentFrame = (int)e.NewValue;
-            }
+            recorderLogic.Seek((int)e.NewValue);
             Draw();
         }
 
         private void Slider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
+            var currentFrame = viewModel.CurrentFrame;
             switch (e.Delta)
             {
                 case > 0:
-                    recorderLogic.CurrentFrame += 1;
+                    if (currentFrame > 0)
+                    {
+                        viewModel.CurrentFrame = currentFrame - 1;
+                    }
                     break;
                 case < 0:
-                    recorderLogic.CurrentFrame -= 1;
+                    if (currentFrame < viewModel.FrameCount - 1)
+                    {
+                        viewModel.CurrentFrame = currentFrame + 1;
+                    }
                     break;
             }
-            viewModel.CurrentFrame = recorderLogic.CurrentFrame;
         }
 
         private void ButtonSave_Click(object sender, RoutedEventArgs e)

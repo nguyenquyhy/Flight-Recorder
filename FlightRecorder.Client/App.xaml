@@ -12,5 +12,6 @@
         <converters:ValueToVisiblityConverter x:Key="ValueToVisibleConverter" />
         <converters:ValueToVisiblityConverter x:Key="ValueToCollapsedConverter" Reverse="True" />
         <converters:BooleanToStringConverter x:Key="BooleanToStringConverter" />
+        <converters:AdditionConverter x:Key="AdditionConverter" />
     </Application.Resources>
 </Application>

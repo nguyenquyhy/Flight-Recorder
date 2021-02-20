@@ -21,25 +21,6 @@ namespace FlightRecorder.Client.Logics
         private readonly Connector connector;
 
         private int currentFrame;
-        public int CurrentFrame
-        {
-            get => currentFrame;
-            set
-            {
-                if (IsPausing)
-                {
-                    logger.LogDebug("Slide changed to {value}", value);
-
-                    currentFrame = value;
-                    (var elapsed, var position) = Records[value];
-                    MoveAircraft(elapsed, position, null, null, 0);
-                }
-                else
-                {
-                    throw new InvalidOperationException("Cannot set CurrentFrame when not pausing!");
-                }
-            }
-        }
 
         private long? startMilliseconds;
         private long? endMilliseconds;
@@ -167,6 +148,19 @@ namespace FlightRecorder.Client.Logics
             return false;
         }
 
+        public void Seek(int value)
+        {
+            logger.LogTrace("Seek to {value}", value);
+
+            currentFrame = value;
+
+            if (IsPausing)
+            {
+                (var elapsed, var position) = Records[value];
+                MoveAircraft(elapsed, position, null, null, 0);
+            }
+        }
+
         public SavedData ToData(string clientVersion)
             => new SavedData(clientVersion, startMilliseconds.Value, endMilliseconds.Value, Records);
 
@@ -195,8 +189,7 @@ namespace FlightRecorder.Client.Logics
             connector.Pause();
 
             var enumerator = Records.GetEnumerator();
-            currentFrame = 0;
-
+            currentFrame = -1;
             long? recordedElapsed = null;
             AircraftPositionStruct? position = null;
 
@@ -226,10 +219,13 @@ namespace FlightRecorder.Client.Logics
                 if (pausedFrame != null && pausedFrame != currentFrame)
                 {
                     // Reset the enumerator since user might seek backward
+                    logger.LogDebug("Reset interaction. Pause frame {frame}.", pausedFrame);
+
                     enumerator = Records.GetEnumerator();
-                    currentFrame = 0;
+                    currentFrame = -1;
                     recordedElapsed = null;
                     position = null;
+
                     pausedFrame = null;
                 }
 
@@ -273,6 +269,8 @@ namespace FlightRecorder.Client.Logics
 
         private void FinishReplay()
         {
+            logger.LogInformation("Replay finished.");
+
             isReplayStopping = false;
 
             // Reset
@@ -280,7 +278,6 @@ namespace FlightRecorder.Client.Logics
             pausedFrame = null;
             replayMilliseconds = null;
 
-            logger.LogInformation("Replay finished.");
             connector.Unpause();
             ReplayFinished?.Invoke(this, new EventArgs());
         }
