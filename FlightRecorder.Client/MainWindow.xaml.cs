@@ -28,11 +28,12 @@ namespace FlightRecorder.Client
         private readonly RecorderLogic recorderLogic;
         private readonly ImageLogic imageLogic;
         private readonly ExportLogic exportLogic;
+        private readonly ThrottleLogic drawingThrottleLogic;
         private readonly string currentVersion;
 
         private IntPtr Handle;
 
-        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, RecorderLogic recorderLogic, ImageLogic imageLogic, ExportLogic exportLogic)
+        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, RecorderLogic recorderLogic, ImageLogic imageLogic, ExportLogic exportLogic, ThrottleLogic drawingThrottleLogic)
         {
             InitializeComponent();
 
@@ -43,6 +44,7 @@ namespace FlightRecorder.Client
             this.recorderLogic = recorderLogic;
             this.imageLogic = imageLogic;
             this.exportLogic = exportLogic;
+            this.drawingThrottleLogic = drawingThrottleLogic;
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
             connector.Frame += Connector_Frame;
             connector.Closed += Connector_Closed;
@@ -145,7 +147,7 @@ namespace FlightRecorder.Client
         {
             recorderLogic.StopRecording();
             viewModel.State = State.Idle;
-            Draw();
+            Draw(false);
         }
 
         private void ButtonReplay_Click(object sender, RoutedEventArgs e)
@@ -186,7 +188,7 @@ namespace FlightRecorder.Client
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             recorderLogic.Seek((int)e.NewValue);
-            Draw();
+            Draw(viewModel.State != State.Pausing);
         }
 
         private void Slider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
@@ -313,7 +315,7 @@ namespace FlightRecorder.Client
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            Draw();
+            Draw(false);
         }
 
         private void InitializeConnector()
@@ -345,71 +347,84 @@ namespace FlightRecorder.Client
             });
         }
 
-        private void Draw()
+        private void Draw(bool throttle = true)
         {
             var width = (int)ImageWrapper.ActualWidth;
             var height = (int)ImageWrapper.ActualHeight;
             var currentFrame = viewModel.CurrentFrame;
+
             Task.Run(() =>
             {
-                try
+                if (throttle)
                 {
-                    var image = imageLogic.Draw(width, height, recorderLogic.Records, currentFrame);
+                    drawingThrottleLogic.RunAsync(async () => Draw(width, height, currentFrame), 500);
+                }
+                else
+                {
+                    Draw(width, height, currentFrame);
+                }
+            });
+        }
 
-                    if (image != null)
+        private void Draw(int width, int height, int currentFrame)
+        {
+            try
+            {
+                var image = imageLogic.Draw(width, height, recorderLogic.Records, currentFrame);
+
+                if (image != null)
+                {
+                    Dispatcher.Invoke(() =>
                     {
-                        Dispatcher.Invoke(() =>
+                        try
                         {
+                            var bmp = new WriteableBitmap(image.Width, image.Height, image.Metadata.HorizontalResolution, image.Metadata.VerticalResolution, PixelFormats.Bgra32, null);
+
+                            bmp.Lock();
                             try
                             {
-                                var bmp = new WriteableBitmap(image.Width, image.Height, image.Metadata.HorizontalResolution, image.Metadata.VerticalResolution, PixelFormats.Bgra32, null);
+                                var backBuffer = bmp.BackBuffer;
 
-                                bmp.Lock();
-                                try
+                                for (var y = 0; y < image.Height; y++)
                                 {
-                                    var backBuffer = bmp.BackBuffer;
-
-                                    for (var y = 0; y < image.Height; y++)
+                                    var buffer = image.GetPixelRowSpan(y);
+                                    for (var x = 0; x < image.Width; x++)
                                     {
-                                        var buffer = image.GetPixelRowSpan(y);
-                                        for (var x = 0; x < image.Width; x++)
-                                        {
-                                            var backBufferPos = backBuffer + (y * image.Width + x) * 4;
-                                            var rgba = buffer[x];
-                                            var color = rgba.A << 24 | rgba.R << 16 | rgba.G << 8 | rgba.B;
+                                        var backBufferPos = backBuffer + (y * image.Width + x) * 4;
+                                        var rgba = buffer[x];
+                                        var color = rgba.A << 24 | rgba.R << 16 | rgba.G << 8 | rgba.B;
 
-                                            Marshal.WriteInt32(backBufferPos, color);
-                                        }
+                                        Marshal.WriteInt32(backBufferPos, color);
                                     }
+                                }
 
-                                    bmp.AddDirtyRect(new Int32Rect(0, 0, image.Width, image.Height));
-                                }
-                                finally
-                                {
-                                    bmp.Unlock();
-                                    ImageChart.Source = bmp;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-#if DEBUG
-                                logger.LogError(ex, "Cannot convert to WriteableBitmap");
-#endif
+                                bmp.AddDirtyRect(new Int32Rect(0, 0, image.Width, image.Height));
                             }
                             finally
                             {
-                                image.Dispose();
+                                bmp.Unlock();
+                                ImageChart.Source = bmp;
                             }
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
+                        }
+                        catch (Exception ex)
+                        {
 #if DEBUG
-                    logger.LogError(ex, "Cannot draw");
+                            logger.LogError(ex, "Cannot convert to WriteableBitmap");
 #endif
+                        }
+                        finally
+                        {
+                            image.Dispose();
+                        }
+                    });
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+#if DEBUG
+                logger.LogError(ex, "Cannot draw");
+#endif
+            }
         }
     }
 }

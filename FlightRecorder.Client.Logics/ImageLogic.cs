@@ -19,6 +19,8 @@ namespace FlightRecorder.Client.Logics
 
         public Image<Rgba32> Draw(int width, int height, List<(long milliseconds, AircraftPositionStruct position)> records, int currentFrame)
         {
+            logger.LogDebug("Generate chart {frame}", currentFrame);
+
             var lines = new List<(Color color, List<PointF> points)>();
             var frames = new List<int>();
 
