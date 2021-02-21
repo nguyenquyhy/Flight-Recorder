@@ -22,11 +22,13 @@ namespace FlightRecorder.Client.Logics
 
         private int currentFrame;
 
+        private double rate = 1;
         private long? startMilliseconds;
         private long? endMilliseconds;
         private long? replayMilliseconds;
         private long? pausedMilliseconds;
         private int? pausedFrame;
+        private double? pausedRate;
         private bool isReplayStopping;
 
         private AircraftPositionStruct? currentPosition = null;
@@ -109,11 +111,19 @@ namespace FlightRecorder.Client.Logics
 
                 pausedMilliseconds = stopwatch.ElapsedMilliseconds;
                 pausedFrame = currentFrame;
+                pausedRate = rate;
 
                 return true;
             }
             return false;
         }
+
+        /**** Timeline
+         * replayMilliseconds
+         *                                        pausedMilliseconds
+         *                                                            stopwatch
+         *                                                            resume
+         */
 
         public bool ResumeReplay()
         {
@@ -122,12 +132,12 @@ namespace FlightRecorder.Client.Logics
                 if (currentFrame == pausedFrame)
                 {
                     // No seeking => Resume based on pause time
-                    replayMilliseconds += stopwatch.ElapsedMilliseconds - pausedMilliseconds;
+                    replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((pausedMilliseconds - replayMilliseconds) / rate * pausedRate);
                 }
                 else
                 {
                     // Resume based on seeked frame
-                    replayMilliseconds = stopwatch.ElapsedMilliseconds - (Records[currentFrame].milliseconds - startMilliseconds);
+                    replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((Records[currentFrame].milliseconds - startMilliseconds) / rate);
                 }
                 pausedMilliseconds = null;
                 // NOTE: pausedFrame is not cleared here to allow resuming in the loop
@@ -159,6 +169,11 @@ namespace FlightRecorder.Client.Logics
                 (var elapsed, var position) = Records[value];
                 MoveAircraft(elapsed, position, null, null, 0);
             }
+        }
+
+        public void ChangeRate(double rate)
+        {
+            this.rate = rate;
         }
 
         public SavedData ToData(string clientVersion)
@@ -229,7 +244,7 @@ namespace FlightRecorder.Client.Logics
                     pausedFrame = null;
                 }
 
-                var currentElapsed = stopwatch.ElapsedMilliseconds - replayStartTime.Value;
+                var currentElapsed = (long)((stopwatch.ElapsedMilliseconds - replayStartTime.Value) * rate);
 
                 try
                 {

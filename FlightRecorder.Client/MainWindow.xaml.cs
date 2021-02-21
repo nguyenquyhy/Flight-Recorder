@@ -4,6 +4,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -113,7 +115,7 @@ namespace FlightRecorder.Client
                 connector.HandleSimConnectEvents(message, ref isHandled);
                 return IntPtr.Zero;
             }
-            catch (BadImageFormatException ex)
+            catch (BadImageFormatException)
             {
                 return IntPtr.Zero;
             }
@@ -152,6 +154,11 @@ namespace FlightRecorder.Client
             recorderLogic.StopRecording();
             viewModel.State = State.Idle;
             Draw(false);
+        }
+
+        private void ButtonChangeSpeed_Click(object sender, RoutedEventArgs e)
+        {
+            (sender as Button).ContextMenu.IsOpen = true;
         }
 
         private void ButtonReplay_Click(object sender, RoutedEventArgs e)
@@ -429,6 +436,15 @@ namespace FlightRecorder.Client
 #if DEBUG
                 logger.LogError(ex, "Cannot draw");
 #endif
+            }
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as MenuItem).Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
+            {
+                ButtonSpeed.Content = header;
+                recorderLogic.ChangeRate(rate);
             }
         }
     }

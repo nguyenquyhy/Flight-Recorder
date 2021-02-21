@@ -56,6 +56,30 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <Button x:Name="ButtonSpeed" Content="x1" Padding="5,0" Margin="0,0,5,0" ContextMenuService.Placement="Bottom"
+                            Click="ButtonChangeSpeed_Click">
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource AnyTrueToTrueConverter}">
+                                <Binding Path="State" Converter="{StaticResource ValueToTrueConverter}" ConverterParameter="Idle" />
+                                <Binding Path="State" Converter="{StaticResource ValueToTrueConverter}" ConverterParameter="Pausing" />
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="x0.5" Click="MenuItem_Click" />
+                                <MenuItem Header="x0.75" Click="MenuItem_Click" />
+                                <Separator />
+                                <MenuItem Header="x1" Click="MenuItem_Click" />
+                                <Separator />
+                                <MenuItem Header="x1.5" Click="MenuItem_Click" />
+                                <MenuItem Header="x2" Click="MenuItem_Click" />
+                                <MenuItem Header="x3" Click="MenuItem_Click" />
+                                <MenuItem Header="x4" Click="MenuItem_Click" />
+                                <MenuItem Header="x8" Click="MenuItem_Click" />
+                                <MenuItem Header="x16" Click="MenuItem_Click" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <TextBlock Text="Current: " />
                     <TextBlock Text="{Binding CurrentFrame, Converter={StaticResource AdditionConverter}, ConverterParameter=1}" />
                 </StackPanel>
@@ -79,8 +103,8 @@
                     Replay
                 </Button>
                 <Button Click="ButtonPauseReplay_Click"
-                        Grid.Column="1"
-                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Replaying}">
+                    Grid.Column="1"
+                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Replaying}">
                     Pause Replay
                 </Button>
                 <Button Click="ButtonResumeReplay_Click"
