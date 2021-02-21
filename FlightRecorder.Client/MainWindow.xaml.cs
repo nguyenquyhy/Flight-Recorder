@@ -330,6 +330,16 @@ namespace FlightRecorder.Client
             Draw(false);
         }
 
+        #region Single Instance
+
+        public void RestoreWindow()
+        {
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        #endregion
+
         private void InitializeConnector()
         {
             Dispatcher.Invoke(async () =>

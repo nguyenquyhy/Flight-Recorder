@@ -5,6 +5,7 @@ using Microsoft.AppCenter.Analytics;
 using Microsoft.AppCenter.Crashes;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using System.Linq;
 using System.Windows;
 
 namespace FlightRecorder.Client
@@ -14,11 +15,36 @@ namespace FlightRecorder.Client
     /// </summary>
     public partial class App : Application
     {
+        #region Single Instance Enforcer
+
+        readonly SingletonApplicationEnforcer enforcer = new SingletonApplicationEnforcer(args =>
+        {
+            Current.Dispatcher.Invoke(() =>
+            {
+                var mainWindow = Current.MainWindow as MainWindow;
+                if (mainWindow != null && args != null)
+                {
+                    mainWindow.RestoreWindow();
+                }
+            });
+        }, "FlightRecorder.Client");
+
+        #endregion
+
         private ServiceProvider serviceProvider;
         private MainWindow mainWindow;
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            if (!e.Args.Contains("--multiple-instances") && enforcer.ShouldApplicationExit())
+            {
+                try
+                {
+                    Shutdown();
+                }
+                catch { }
+            }
+
             AppCenter.Start("5525090f-eddc-4bca-bdd9-5b5fdc301ed0", typeof(Analytics), typeof(Crashes));
 
             var serviceCollection = new ServiceCollection();
