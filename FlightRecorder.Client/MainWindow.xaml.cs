@@ -84,10 +84,14 @@ namespace FlightRecorder.Client
 
         private void RecorderLogic_ReplayFinished(object sender, EventArgs e)
         {
+            imageLogic.ClearCache();
+
             Dispatcher.Invoke(() =>
             {
                 viewModel.State = State.Idle;
                 viewModel.CurrentFrame = 0;
+
+                Draw();
             });
         }
 
@@ -188,7 +192,7 @@ namespace FlightRecorder.Client
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             recorderLogic.Seek((int)e.NewValue);
-            Draw(viewModel.State != State.Pausing);
+            Draw(viewModel.State == State.Recording || viewModel.State == State.Replaying);
         }
 
         private void Slider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
@@ -300,6 +304,7 @@ namespace FlightRecorder.Client
                         var savedData = JsonSerializer.Deserialize<SavedData>(dataString);
 
                         recorderLogic.FromData(savedData);
+                        imageLogic.ClearCache();
 
                         Draw();
                     }
