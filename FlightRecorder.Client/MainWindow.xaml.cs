@@ -232,7 +232,8 @@ namespace FlightRecorder.Client
 
             var dialog = new SaveFileDialog
             {
-                FileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm}.flightrecorder"
+                FileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm}.flightrecorder",
+                Filter = "Recorded Flight|*.flightrecorder"
             };
             if (dialog.ShowDialog() == true)
             {
@@ -272,7 +273,8 @@ namespace FlightRecorder.Client
 
             var dialog = new SaveFileDialog
             {
-                FileName = $"Export {DateTime.Now:yyyy-MM-dd-HH-mm}.csv"
+                FileName = $"Export {DateTime.Now:yyyy-MM-dd-HH-mm}.csv",
+                Filter = "CSV (for Excel)|*.csv"
             };
             if (dialog.ShowDialog() == true)
             {
@@ -296,25 +298,33 @@ namespace FlightRecorder.Client
 
             if (dialog.ShowDialog() == true)
             {
-                using var file = dialog.OpenFile();
-                using var zipFile = new ZipFile(file);
-
-                foreach (ZipEntry entry in zipFile)
+                try
                 {
-                    if (entry.IsFile && entry.Name == "data.json")
+                    using var file = dialog.OpenFile();
+                    using var zipFile = new ZipFile(file);
+
+                    foreach (ZipEntry entry in zipFile)
                     {
-                        using var stream = zipFile.GetInputStream(entry);
+                        if (entry.IsFile && entry.Name == "data.json")
+                        {
+                            using var stream = zipFile.GetInputStream(entry);
 
-                        var reader = new StreamReader(stream);
-                        var dataString = reader.ReadToEnd();
+                            var reader = new StreamReader(stream);
+                            var dataString = reader.ReadToEnd();
 
-                        var savedData = JsonSerializer.Deserialize<SavedData>(dataString);
+                            var savedData = JsonSerializer.Deserialize<SavedData>(dataString);
 
-                        recorderLogic.FromData(savedData);
-                        imageLogic.ClearCache();
+                            recorderLogic.FromData(savedData);
+                            imageLogic.ClearCache();
 
-                        Draw();
+                            Draw();
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Cannot load file");
+                    MessageBox.Show("The selected file is not a valid recording or not accessible!\n\nAre you sure you are opening a *.flightrecorder file?", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
