@@ -17,7 +17,7 @@
 
     <Grid Margin="5">
         <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=NotConnected}">
-            <TextBlock Text="Cannot connect to SimConnect!" />
+            <TextBlock Text="Cannot connect to SimConnect! Please start Microsoft Flight Simulator." />
         </StackPanel>
         <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=Connecting}">
             <TextBlock Text="Connecting to SimConnect..." />
