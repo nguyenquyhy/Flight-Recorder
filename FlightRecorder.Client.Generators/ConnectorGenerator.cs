@@ -40,7 +40,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
         private void RegisterAircraftPositionDefinition()
         {
             RegisterDataDefinition<AircraftPositionStruct>(DEFINITIONS.AircraftPosition");
-            foreach ((_, _, var variable, var unit, var type, _, _) in fields)
+            foreach ((_, _, var variable, var unit, var type, _, _, _, _) in fields)
             {
                 builder.Append($@",
                 (""{variable}"", ""{unit}"", (SIMCONNECT_DATATYPE){type})");
@@ -54,7 +54,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
         private void RegisterAircraftPositionSetDefinition()
         {
             RegisterDataDefinition<AircraftPositionSetStruct>(DEFINITIONS.AircraftPositionSet");
-            foreach ((_, _, var variable, var unit, var type, var setType, _) in fields)
+            foreach ((_, _, var variable, var unit, var type, var setType, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -71,7 +71,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
         private void RegisterEvents()
         {");
             var eventId = InitialEventID;
-            foreach ((_, _, var variable, var unit, var type, var setType, var setBy) in fields)
+            foreach ((_, _, var variable, var unit, var type, var setType, var setBy, _, _) in fields)
             {
                 if (setType == SetTypeEvent)
                 {
@@ -89,7 +89,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
         public void TriggerEvents(AircraftPositionStruct current, AircraftPositionStruct expected)
         {");
             eventId = InitialEventID;
-            foreach ((_, var name, var variable, var unit, var type, var setType, var setBy) in fields)
+            foreach ((_, var name, var variable, var unit, var type, var setType, var setBy, _, _) in fields)
             {
                 if (setType == SetTypeEvent)
                 {

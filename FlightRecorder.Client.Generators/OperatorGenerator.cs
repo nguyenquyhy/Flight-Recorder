@@ -27,7 +27,7 @@ namespace FlightRecorder.Client.Generators
             AddOperator(context, fields);
         }
 
-        private static void AddSetStruct(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent)> fields)
+        private static void AddSetStruct(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent, double min, double max)> fields)
         {
             var builder = new StringBuilder();
             builder.Append(@"
@@ -39,7 +39,7 @@ namespace FlightRecorder.Client
     public partial struct AircraftPositionSetStruct
     {");
 
-            foreach ((var type, var name, _, _, _, var setType, _) in fields)
+            foreach ((var type, var name, _, _, _, var setType, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -55,7 +55,7 @@ namespace FlightRecorder.Client
             context.AddSource("SetStruct", SourceText.From(builder.ToString(), Encoding.UTF8));
         }
 
-        private static void AddOperator(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent)> fields)
+        private static void AddOperator(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent, double min, double max)> fields)
         {
             var builder = new StringBuilder();
             builder.Append(@"
@@ -71,7 +71,7 @@ namespace FlightRecorder.Client
         public static partial AircraftPositionSetStruct ToSet(AircraftPositionStruct variables)
             => new AircraftPositionSetStruct
             {");
-            foreach ((_, var name, _, _, _, var setType, _) in fields)
+            foreach ((_, var name, _, _, _, var setType, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -84,10 +84,10 @@ namespace FlightRecorder.Client
 ");
 
             builder.Append(@"
-        public static partial AircraftPositionSetStruct Add(AircraftPositionSetStruct position1, AircraftPositionSetStruct position2)
+        public static AircraftPositionSetStruct Add(AircraftPositionSetStruct position1, AircraftPositionSetStruct position2)
             => new AircraftPositionSetStruct
             {");
-            foreach ((_, var name, _, _, _, var setType, _) in fields)
+            foreach ((_, var name, _, _, _, var setType, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -99,12 +99,11 @@ namespace FlightRecorder.Client
             };
 ");
 
-
             builder.Append(@"
-        public static partial AircraftPositionSetStruct Scale(AircraftPositionSetStruct position, double factor)
+        public static AircraftPositionSetStruct Scale(AircraftPositionSetStruct position, double factor)
             => new AircraftPositionSetStruct
             {");
-            foreach ((var type, var name, _, _, _, var setType, _) in fields)
+            foreach ((var type, var name, _, _, _, var setType, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -121,6 +120,46 @@ namespace FlightRecorder.Client
                         case "uint":
                             builder.Append($@"
                 {name} = (uint)Math.Round(position.{name} * factor),");
+                            break;
+                        default:
+                            // TODO: warning
+                            break;
+                    }
+                }
+            }
+            builder.Append(@"
+            };
+");
+
+            builder.Append(@"
+        public static AircraftPositionSetStruct Interpolate(AircraftPositionSetStruct position1, AircraftPositionSetStruct position2, double interpolation)
+            => new AircraftPositionSetStruct
+            {");
+            foreach ((var type, var name, _, _, _, var setType, _, var min, var max) in fields)
+            {
+                if (setType == null || setType == SetTypeDefault)
+                {
+                    switch (type)
+                    {
+                        case "double":
+                            if (min < max)
+                            {
+                                builder.Append($@"
+                {name} = InterpolateWrap(position1.{name}, position2.{name}, interpolation, {min}, {max}),");
+                            }
+                            else
+                            {
+                                builder.Append($@"
+                {name} = position1.{name} * interpolation + position2.{name} * (1 - interpolation),");
+                            }
+                            break;
+                        case "int":
+                            builder.Append($@"
+                {name} = (int)Math.Round(position1.{name} * interpolation + position2.{name} * (1 - interpolation)),");
+                            break;
+                        case "uint":
+                            builder.Append($@"
+                {name} = (uint)Math.Round(position1.{name} * interpolation + position2.{name} * (1 - interpolation)),");
                             break;
                         default:
                             // TODO: warning

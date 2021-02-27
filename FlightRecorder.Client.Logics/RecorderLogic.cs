@@ -310,7 +310,7 @@ namespace FlightRecorder.Client.Logics
                     // Edge case: let next value win so Math.round does not act unexpectedly
                     interpolation = 0.501;
                 }
-                nextValue = nextValue * interpolation + AircraftPositionStructOperator.ToSet(lastPosition.Value) * (1 - interpolation);
+                nextValue = AircraftPositionStructOperator.Interpolate(nextValue, AircraftPositionStructOperator.ToSet(lastPosition.Value), interpolation);
             }
             if (currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
             {

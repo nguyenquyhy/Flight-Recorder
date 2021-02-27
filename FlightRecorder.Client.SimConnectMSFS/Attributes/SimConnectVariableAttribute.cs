@@ -11,6 +11,8 @@ namespace FlightRecorder.Client
         public SIMCONNECT_DATATYPE Type { get; set; }
         public SetType SetType { get; set; }
         public string SetByEvent { get; set; }
+        public double Minimum { get; set; }
+        public double Maximum { get; set; }
     }
 
     public enum SetType
