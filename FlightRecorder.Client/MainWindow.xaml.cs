@@ -340,6 +340,25 @@ namespace FlightRecorder.Client
             Draw(false);
         }
 
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as MenuItem).Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
+            {
+                ButtonSpeed.Content = header;
+                recorderLogic.ChangeRate(rate);
+            }
+        }
+
+        private void ToggleButtonTopmost_Checked(object sender, RoutedEventArgs e)
+        {
+            Topmost = true;
+        }
+
+        private void ToggleButtonTopmost_Unchecked(object sender, RoutedEventArgs e)
+        {
+            Topmost = false;
+        }
+
         #region Single Instance
 
         public void RestoreWindow()
@@ -456,15 +475,6 @@ namespace FlightRecorder.Client
 #if DEBUG
                 logger.LogError(ex, "Cannot draw");
 #endif
-            }
-        }
-
-        private void MenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as MenuItem).Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
-            {
-                ButtonSpeed.Content = header;
-                recorderLogic.ChangeRate(rate);
             }
         }
     }

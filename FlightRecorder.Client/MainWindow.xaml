@@ -144,7 +144,10 @@
                 </Button>
             </Grid>
 
-            <Button Content="{Binding ShowData, Converter={StaticResource BooleanToStringConverter}, ConverterParameter='Hide Data|Show Data'}" d:Content="Hide Data" Width="80" Margin="0,10,0,0" HorizontalAlignment="Left" Click="ButtonShowData_Click" />
+            <Grid>
+                <Button Content="{Binding ShowData, Converter={StaticResource BooleanToStringConverter}, ConverterParameter='Hide Data|Show Data'}" d:Content="Hide Data" Width="80" Margin="0,10,0,0" HorizontalAlignment="Left" Click="ButtonShowData_Click" />
+                <ToggleButton Content="Stay on top" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="80" Checked="ToggleButtonTopmost_Checked" Unchecked="ToggleButtonTopmost_Unchecked" />
+            </Grid>
             <Grid Visibility="{Binding ShowData, Converter={StaticResource TrueToVisibleConverter}}">
                 <Grid DataContext="{Binding AircraftPosition}">
                     <Grid.ColumnDefinitions>
