@@ -31,15 +31,15 @@ namespace FlightRecorder.Client.Logics
 
         public Image<Rgba32> Draw(int width, int height, List<(long milliseconds, AircraftPositionStruct position)> records, int currentFrame)
         {
-            logger.LogDebug("Generate chart {frame}", currentFrame);
+            logger.LogTrace("Generate chart {frame}", currentFrame);
 
             if (cacheKey.HasValue && cacheKey.Value == (width, height, records.Count))
             {
-                logger.LogDebug("Use cached background", currentFrame);
+                logger.LogTrace("Use cached background", currentFrame);
             }
             else
             {
-                logger.LogDebug("Draw new background", currentFrame);
+                logger.LogTrace("Draw new background", currentFrame);
 
                 var lines = new List<(Color color, List<PointF> points)>();
                 var frames = new List<int>();
@@ -56,7 +56,7 @@ namespace FlightRecorder.Client.Logics
                     var startTime = data.Min(item => item.milliseconds);
                     var endTime = data.Max(item => item.milliseconds);
 
-                    if (min == max || startTime == endTime) return null;
+                    if (startTime == endTime) return null;
 
                     var chartHeight = height - 5;
 
@@ -79,7 +79,7 @@ namespace FlightRecorder.Client.Logics
                             lines.Add((color, new()));
                             lastColor = color;
                         }
-                        lines.Last().points.Add(new PointF(i, height - (float)((altitude - min) / (max - min)) * chartHeight - 1));
+                        lines.Last().points.Add(new PointF(i, max == min ? height / 2 : height - (float)((altitude - min) / (max - min)) * chartHeight - 1));
                         frames.Add(dataIndex);
                     }
                 }
