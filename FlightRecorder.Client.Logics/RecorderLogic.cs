@@ -191,7 +191,15 @@ namespace FlightRecorder.Client.Logics
         {
             if (IsReplaying)
             {
-                tcs?.SetResult(true);
+                try
+                {
+                    tcs?.SetResult(true);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Ignore since most likely tcs result is already set
+                    logger.LogDebug(ex, "Cannot set TCS result on tick");
+                }
             }
         }
 
