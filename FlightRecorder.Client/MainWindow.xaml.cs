@@ -154,6 +154,7 @@ namespace FlightRecorder.Client
             recorderLogic.StopRecording();
             viewModel.State = State.Idle;
             Draw(false);
+            SaveRecording();
         }
 
         private void ButtonChangeSpeed_Click(object sender, RoutedEventArgs e)
@@ -223,6 +224,11 @@ namespace FlightRecorder.Client
         }
 
         private void ButtonSave_Click(object sender, RoutedEventArgs e)
+        {
+            SaveRecording();
+        }
+
+        private void SaveRecording()
         {
             if (!recorderLogic.IsEnded || !recorderLogic.IsReplayable)
             {
