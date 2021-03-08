@@ -66,6 +66,7 @@
                         </Button.IsEnabled>
                         <Button.ContextMenu>
                             <ContextMenu>
+                                <MenuItem Header="x0.25" Click="MenuItem_Click" />
                                 <MenuItem Header="x0.5" Click="MenuItem_Click" />
                                 <MenuItem Header="x0.75" Click="MenuItem_Click" />
                                 <Separator />
