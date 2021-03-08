@@ -27,7 +27,7 @@ namespace FlightRecorder.Client.Logics
 
             try
             {
-                logger.LogDebug("{last} {local}", lastTime, time);
+                logger.LogTrace("Last run {last}. Current time {local}", lastTime, time);
                 if (lastTime != null && lastTime != time)
                 {
                     // Skip
