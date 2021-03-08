@@ -60,11 +60,10 @@ namespace FlightRecorder.Client
         {
             try
             {
-                var recorderLogic = serviceProvider?.GetService<RecorderLogic>();
-                var connector = serviceProvider?.GetService<Connector>();
-                if (recorderLogic != null && connector != null && (recorderLogic.IsReplaying || recorderLogic.IsPausing))
+                var recorderLogic = serviceProvider?.GetService<IRecorderLogic>();
+                if (recorderLogic != null)
                 {
-                    connector.Unpause();
+                    recorderLogic.Unfreeze();
                 }
             }
             catch
@@ -97,7 +96,7 @@ namespace FlightRecorder.Client
             });
 
             services.AddSingleton<Connector>();
-            services.AddSingleton<RecorderLogic>();
+            services.AddSingleton<IRecorderLogic, RecorderLogic>();
             services.AddSingleton<ImageLogic>();
             services.AddSingleton<ExportLogic>();
             services.AddTransient<ThrottleLogic>();

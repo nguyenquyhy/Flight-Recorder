@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace FlightRecorder.Client.Logics
 {
-    public class RecorderLogic
+    public class RecorderLogic : IRecorderLogic
     {
         private const int EventThrottleMilliseconds = 500;
 
@@ -35,26 +35,15 @@ namespace FlightRecorder.Client.Logics
         private long? lastTriggeredMilliseconds = null;
         private TaskCompletionSource<bool> tcs;
 
+        public bool CanSave => IsEnded && IsReplayable;
+
         private bool IsStarted => startMilliseconds.HasValue && Records != null;
-        public bool IsEnded => startMilliseconds.HasValue && endMilliseconds.HasValue;
-        public bool IsReplayable => Records != null && Records.Count > 0;
-        public bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
-        public bool IsPausing => pausedMilliseconds != null;
+        private bool IsEnded => startMilliseconds.HasValue && endMilliseconds.HasValue;
+        private bool IsReplayable => Records != null && Records.Count > 0;
+        private bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
+        private bool IsPausing => pausedMilliseconds != null;
 
         public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; }
-        public AircraftPositionStruct? CurrentPosition
-        {
-            set
-            {
-                currentPosition = value;
-
-                if (IsStarted && !IsEnded && value.HasValue)
-                {
-                    Records.Add((stopwatch.ElapsedMilliseconds, value.Value));
-                    RecordsUpdated?.Invoke(this, new EventArgs());
-                }
-            }
-        }
 
         public RecorderLogic(ILogger<RecorderLogic> logger, Connector connector)
         {
@@ -71,7 +60,18 @@ namespace FlightRecorder.Client.Logics
             stopwatch.Start();
         }
 
-        public void Start()
+        public void NotifyPosition(AircraftPositionStruct? value)
+        {
+            currentPosition = value;
+
+            if (IsStarted && !IsEnded && value.HasValue)
+            {
+                Records.Add((stopwatch.ElapsedMilliseconds, value.Value));
+                RecordsUpdated?.Invoke(this, new EventArgs());
+            }
+        }
+
+        public void Record()
         {
             logger.LogInformation("Start recording...");
 
@@ -176,17 +176,6 @@ namespace FlightRecorder.Client.Logics
             this.rate = rate;
         }
 
-        public SavedData ToData(string clientVersion)
-            => new SavedData(clientVersion, startMilliseconds.Value, endMilliseconds.Value, Records);
-
-        public void FromData(SavedData data)
-        {
-            startMilliseconds = data.StartTime;
-            endMilliseconds = data.EndTime;
-            Records = data.Records.Select(r => (r.Time, AircraftPosition.ToStruct(r.Position))).ToList();
-            RecordsUpdated?.Invoke(this, new EventArgs());
-        }
-
         public void Tick()
         {
             if (IsReplaying)
@@ -201,6 +190,25 @@ namespace FlightRecorder.Client.Logics
                     logger.LogDebug(ex, "Cannot set TCS result on tick");
                 }
             }
+        }
+
+        public void Unfreeze()
+        {
+            if (replayMilliseconds != null)
+            {
+                connector.Unpause();
+            }
+        }
+
+        public SavedData ToData(string clientVersion)
+            => new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, Records);
+
+        public void FromData(SavedData data)
+        {
+            startMilliseconds = data.StartTime;
+            endMilliseconds = data.EndTime;
+            Records = data.Records.Select(r => (r.Time, AircraftPosition.ToStruct(r.Position))).ToList();
+            RecordsUpdated?.Invoke(this, new EventArgs());
         }
 
         #endregion
@@ -296,12 +304,13 @@ namespace FlightRecorder.Client.Logics
 
             isReplayStopping = false;
 
+            Unfreeze();
+
             // Reset
             pausedMilliseconds = null;
             pausedFrame = null;
             replayMilliseconds = null;
 
-            connector.Unpause();
             ReplayFinished?.Invoke(this, new EventArgs());
         }
 

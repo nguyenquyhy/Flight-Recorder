@@ -27,7 +27,7 @@ namespace FlightRecorder.Client
         private readonly ILogger<MainWindow> logger;
         private readonly MainViewModel viewModel;
         private readonly Connector connector;
-        private readonly RecorderLogic recorderLogic;
+        private readonly IRecorderLogic recorderLogic;
         private readonly ImageLogic imageLogic;
         private readonly ExportLogic exportLogic;
         private readonly ThrottleLogic drawingThrottleLogic;
@@ -35,7 +35,7 @@ namespace FlightRecorder.Client
 
         private IntPtr Handle;
 
-        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, RecorderLogic recorderLogic, ImageLogic imageLogic, ExportLogic exportLogic, ThrottleLogic drawingThrottleLogic)
+        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, IRecorderLogic recorderLogic, ImageLogic imageLogic, ExportLogic exportLogic, ThrottleLogic drawingThrottleLogic)
         {
             InitializeComponent();
 
@@ -123,7 +123,7 @@ namespace FlightRecorder.Client
 
         private void Connector_AircraftPositionUpdated(object sender, AircraftPositionUpdatedEventArgs e)
         {
-            recorderLogic.CurrentPosition = e.Position;
+            recorderLogic.NotifyPosition(e.Position);
 
             Dispatcher.Invoke(() =>
             {
@@ -144,7 +144,7 @@ namespace FlightRecorder.Client
 
         private void ButtonRecord_Click(object sender, RoutedEventArgs e)
         {
-            recorderLogic.Start();
+            recorderLogic.Record();
             viewModel.State = State.Recording;
             viewModel.CurrentFrame = 0;
         }
@@ -224,7 +224,7 @@ namespace FlightRecorder.Client
 
         private void ButtonSave_Click(object sender, RoutedEventArgs e)
         {
-            if (!recorderLogic.IsEnded || !recorderLogic.IsReplayable)
+            if (!recorderLogic.CanSave)
             {
                 MessageBox.Show("Nothing to save!");
                 return;
@@ -265,7 +265,7 @@ namespace FlightRecorder.Client
 
         private async void ButtonExport_Click(object sender, RoutedEventArgs e)
         {
-            if (!recorderLogic.IsEnded || !recorderLogic.IsReplayable)
+            if (!recorderLogic.CanSave)
             {
                 MessageBox.Show("Nothing to export!");
                 return;
