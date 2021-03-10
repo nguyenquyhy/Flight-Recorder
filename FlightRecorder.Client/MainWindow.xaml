@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FlightRecorder.Client"
         mc:Ignorable="d"
-        Title="Flight Recorder" Height="275" d:Height="500" Width="450" SizeChanged="Window_SizeChanged">
+        Title="Flight Recorder" Height="275" d:Height="500" Width="450" SizeChanged="Window_SizeChanged" Closing="Window_Closing">
     <Window.Resources>
         <Style x:Key="SeparatorStyle" TargetType="Rectangle">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -16,21 +16,18 @@
     </Window.Resources>
 
     <Grid Margin="5">
-        <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=NotConnected}">
-            <TextBlock Text="Cannot connect to SimConnect! Please start Microsoft Flight Simulator." />
-        </StackPanel>
-        <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=Connecting}">
-            <TextBlock Text="Connecting to SimConnect..." />
-        </StackPanel>
-        <StackPanel Visibility="{Binding SimConnectState, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=Connected}">
-            <Grid>
+        <StackPanel>
+            <Grid Visibility="{Binding State, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=DisconnectedEmpty|DisconnectedSaved|DisconnectedUnsaved}">
+                <TextBlock Text="Cannot connect to SimConnect! Please start Microsoft Flight Simulator." HorizontalAlignment="Center" />
+            </Grid>
+            <Grid Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=DisconnectedEmpty|DisconnectedSaved|DisconnectedUnsaved}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
                     <ColumnDefinition />
                 </Grid.ColumnDefinitions>
                 <Button Click="ButtonRecord_Click"
                         Grid.Column="0"
-                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=IdleEmpty|IdleSaved|IdleUnsaved}">
                     Record
                 </Button>
                 <Button Click="ButtonStop_Click"
@@ -43,10 +40,14 @@
             <Rectangle Style="{StaticResource SeparatorStyle}" />
 
             <Slider Maximum="{Binding FrameCount, Converter={StaticResource AdditionConverter}, ConverterParameter=-1}" Value="{Binding CurrentFrame}" SmallChange="1"
-                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Pausing}"
+                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=PausingSaved|PausingUnsaved}"
                     ValueChanged="Slider_ValueChanged" MouseWheel="Slider_MouseWheel" />
             <Grid x:Name="ImageWrapper" Height="50" HorizontalAlignment="Stretch" Margin="5,0">
-                <Image x:Name="ImageChart" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+                <Image x:Name="ImageChart" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=Recording}" />
+                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"
+                      Visibility="{Binding State, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=Recording}">
+                    <TextBlock Text="Recording" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+                </Grid>
             </Grid>
 
             <Grid Margin="5,0,5,10">
@@ -57,13 +58,8 @@
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
                     <Button x:Name="ButtonSpeed" Content="x1" Padding="5,0" Margin="0,0,5,0" ContextMenuService.Placement="Bottom"
+                            IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=IdleSaved|IdleUnsaved|PausingSaved|PausingUnsaved}"
                             Click="ButtonChangeSpeed_Click">
-                        <Button.IsEnabled>
-                            <MultiBinding Converter="{StaticResource AnyTrueToTrueConverter}">
-                                <Binding Path="State" Converter="{StaticResource ValueToTrueConverter}" ConverterParameter="Idle" />
-                                <Binding Path="State" Converter="{StaticResource ValueToTrueConverter}" ConverterParameter="Pausing" />
-                            </MultiBinding>
-                        </Button.IsEnabled>
                         <Button.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="x0.25" Click="MenuItem_Click" />
@@ -100,22 +96,22 @@
                 </Grid.ColumnDefinitions>
                 <Button Click="ButtonReplay_Click"
                         Grid.Column="0"
-                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=IdleSaved|IdleUnsaved}">
                     Replay
                 </Button>
                 <Button Click="ButtonPauseReplay_Click"
                     Grid.Column="1"
-                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Replaying}">
+                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=ReplayingSaved|ReplayingUnsaved}">
                     Pause Replay
                 </Button>
                 <Button Click="ButtonResumeReplay_Click"
                         Grid.Column="2"
-                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Pausing}">
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=PausingSaved|PausingUnsaved}">
                     Resume Replay
                 </Button>
                 <Button Click="ButtonStopReplay_Click"
                         Grid.Column="3"
-                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Replaying}">
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=ReplayingSaved|ReplayingUnsaved|PausingSaved|PausingUnsaved}">
                     Stop Replay
                 </Button>
             </Grid>
@@ -130,17 +126,24 @@
                 </Grid.ColumnDefinitions>
                 <Button Click="ButtonSave_Click"
                         Grid.Column="0"
-                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=DisconnectedSaved|IdleSaved}"
+                        Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=DisconnectedUnsaved|IdleUnsaved|ReplayingUnsaved|PauseUnsaved}">
                     Save
+                </Button>
+                <Button Click="ButtonSave_Click"
+                        Grid.Column="0"
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=DisconnectedUnsaved|IdleUnsaved}"
+                        Visibility="{Binding State, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=DisconnectedUnsaved|IdleUnsaved|ReplayingUnsaved|PauseUnsaved}">
+                    Save*
                 </Button>
                 <Button Click="ButtonExport_Click"
                         Grid.Column="1"
-                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=DisconnectedSaved|DisconnectedUnsaved|IdleSaved|IdleUnsaved}">
                     Export
                 </Button>
                 <Button Click="ButtonLoad_Click"
                         Grid.Column="2"
-                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=Idle}">
+                        IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=DisconnectedEmpty|DisconnectedSaved|DisconnectedUnsaved|IdleEmpty|IdleSaved|IdleUnsaved}">
                     Load
                 </Button>
             </Grid>

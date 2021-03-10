@@ -16,7 +16,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlightRecorder.Client.Logics", "FlightRecorder.Client.Logics\FlightRecorder.Client.Logics.csproj", "{9E970BD5-2289-4414-9124-2E850F9FB988}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlightRecorder.Client.Logics.Tests", "FlightRecorder.Client.Logics.Tests\FlightRecorder.Client.Logics.Tests.csproj", "{F782AB04-8810-49BC-9FCE-21635306311A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlightRecorder.Client.Logics.Tests", "FlightRecorder.Client.Logics.Tests\FlightRecorder.Client.Logics.Tests.csproj", "{F782AB04-8810-49BC-9FCE-21635306311A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlightRecorder.Client.ViewModels", "FlightRecorder.Client.ViewModels\FlightRecorder.Client.ViewModels.csproj", "{5020B661-DC7E-4758-89F9-53CAEF0A3CEF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlightRecorder.Client.ViewModels.Tests", "FlightRecorder.Client.ViewModels.Tests\FlightRecorder.Client.ViewModels.Tests.csproj", "{ECCD14B7-BF20-4DE7-83C5-DBD6A86B2826}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +48,14 @@ Global
 		{F782AB04-8810-49BC-9FCE-21635306311A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F782AB04-8810-49BC-9FCE-21635306311A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F782AB04-8810-49BC-9FCE-21635306311A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5020B661-DC7E-4758-89F9-53CAEF0A3CEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5020B661-DC7E-4758-89F9-53CAEF0A3CEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5020B661-DC7E-4758-89F9-53CAEF0A3CEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5020B661-DC7E-4758-89F9-53CAEF0A3CEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECCD14B7-BF20-4DE7-83C5-DBD6A86B2826}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECCD14B7-BF20-4DE7-83C5-DBD6A86B2826}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECCD14B7-BF20-4DE7-83C5-DBD6A86B2826}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECCD14B7-BF20-4DE7-83C5-DBD6A86B2826}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

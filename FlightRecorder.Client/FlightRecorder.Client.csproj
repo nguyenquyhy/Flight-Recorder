@@ -32,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FlightRecorder.Client.Logics\FlightRecorder.Client.Logics.csproj" />
     <ProjectReference Include="..\FlightRecorder.Client.SimConnectMSFS\FlightRecorder.Client.SimConnectMSFS.csproj" />
+    <ProjectReference Include="..\FlightRecorder.Client.ViewModels\FlightRecorder.Client.ViewModels.csproj" />
   </ItemGroup>
 
 </Project>

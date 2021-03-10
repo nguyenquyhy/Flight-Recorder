@@ -28,24 +28,18 @@ namespace FlightRecorder.Client
         Failed
     }
 
-    public enum State
-    {
-        Idle,
-        Recording,
-        Replaying,
-        Pausing,
-    }
-
     public class MainViewModel : BaseViewModel
     {
+        public bool IsThrottlingChart => State == StateMachine.State.Recording || State == StateMachine.State.ReplayingSaved || State == StateMachine.State.ReplayingUnsaved;
+
         private SimConnectState simConnectState;
         public SimConnectState SimConnectState { get => simConnectState; set => SetProperty(ref simConnectState, value); }
 
         private AircraftPosition aircraftPosition;
         public AircraftPosition AircraftPosition { get => aircraftPosition; set => SetProperty(ref aircraftPosition, value); }
 
-        private State state;
-        public State State { get => state; set => SetProperty(ref state, value); }
+        private StateMachine.State state = StateMachine.State.Start;
+        public StateMachine.State State { get => state; set => SetProperty(ref state, value); }
 
         private int frameCount;
         public int FrameCount { get => frameCount; set => SetProperty(ref frameCount, value); }

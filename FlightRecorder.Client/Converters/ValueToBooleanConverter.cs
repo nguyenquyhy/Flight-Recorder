@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Data;
 
 namespace FlightRecorder.Client.Converters
@@ -10,7 +11,8 @@ namespace FlightRecorder.Client.Converters
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return value.ToString() == parameter.ToString() ^ Reverse;
+            var values = parameter.ToString().Split("|").ToArray();
+            return values.Contains(value.ToString()) ^ Reverse;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

@@ -32,7 +32,6 @@ namespace FlightRecorder.Client
         #endregion
 
         private ServiceProvider serviceProvider;
-        private MainWindow mainWindow;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -56,8 +55,8 @@ namespace FlightRecorder.Client
 
             serviceProvider = serviceCollection.BuildServiceProvider();
 
-            mainWindow = serviceProvider.GetRequiredService<MainWindow>();
-            mainWindow.Show();
+            MainWindow = serviceProvider.GetRequiredService<MainWindow>();
+            MainWindow.Show();
         }
 
         protected override void OnExit(ExitEventArgs e)
@@ -65,10 +64,7 @@ namespace FlightRecorder.Client
             try
             {
                 var recorderLogic = serviceProvider?.GetService<IRecorderLogic>();
-                if (recorderLogic != null)
-                {
-                    recorderLogic.Unfreeze();
-                }
+                recorderLogic?.Unfreeze();
             }
             catch
             {
@@ -99,12 +95,14 @@ namespace FlightRecorder.Client
                 configure.AddSerilog();
             });
 
+            services.AddSingleton<StateMachine>();
             services.AddSingleton<Connector>();
             services.AddSingleton<IRecorderLogic, RecorderLogic>();
             services.AddSingleton<ImageLogic>();
             services.AddSingleton<ExportLogic>();
+            services.AddSingleton<IDialogLogic, DialogLogic>();
+            services.AddSingleton(typeof(MainViewModel));
             services.AddTransient<ThrottleLogic>();
-            services.AddTransient(typeof(MainViewModel));
             services.AddTransient(typeof(MainWindow));
         }
     }

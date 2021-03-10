@@ -43,7 +43,7 @@ namespace FlightRecorder.Client.Logics
         private bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
         private bool IsPausing => pausedMilliseconds != null;
 
-        public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; }
+        public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; } = new();
 
         public RecorderLogic(ILogger<RecorderLogic> logger, Connector connector)
         {
@@ -149,9 +149,12 @@ namespace FlightRecorder.Client.Logics
 
         public bool StopReplay()
         {
-            if (IsReplaying)
+            if (IsReplaying || IsPausing)
             {
                 isReplayStopping = true;
+
+                // Make sure at least one more tick happens to handle sim exit
+                Tick();
 
                 return true;
             }
@@ -178,7 +181,7 @@ namespace FlightRecorder.Client.Logics
 
         public void Tick()
         {
-            if (IsReplaying)
+            if (IsReplaying || IsPausing)
             {
                 try
                 {
@@ -241,10 +244,15 @@ namespace FlightRecorder.Client.Logics
                 }
 
                 var replayStartTime = replayMilliseconds;
-                if (replayStartTime == null || pausedMilliseconds != null)
+                if (replayStartTime == null)
                 {
-                    // Paused or stopped
-                    return;
+                    // Safe-guard for Stopped
+                    continue;
+                }
+
+                if (IsPausing)
+                {
+                    continue;
                 }
 
                 if (pausedFrame != null && pausedFrame != currentFrame)

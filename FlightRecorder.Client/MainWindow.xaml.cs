@@ -31,11 +31,12 @@ namespace FlightRecorder.Client
         private readonly ImageLogic imageLogic;
         private readonly ExportLogic exportLogic;
         private readonly ThrottleLogic drawingThrottleLogic;
+        private readonly StateMachine stateMachine;
         private readonly string currentVersion;
 
         private IntPtr Handle;
 
-        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, IRecorderLogic recorderLogic, ImageLogic imageLogic, ExportLogic exportLogic, ThrottleLogic drawingThrottleLogic)
+        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, IRecorderLogic recorderLogic, ImageLogic imageLogic, ExportLogic exportLogic, ThrottleLogic drawingThrottleLogic, StateMachine stateMachine)
         {
             InitializeComponent();
 
@@ -47,6 +48,10 @@ namespace FlightRecorder.Client
             this.imageLogic = imageLogic;
             this.exportLogic = exportLogic;
             this.drawingThrottleLogic = drawingThrottleLogic;
+            this.stateMachine = stateMachine;
+
+            stateMachine.StateChanged += StateMachine_StateChanged;
+
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
             connector.Frame += Connector_Frame;
             connector.Closed += Connector_Closed;
@@ -59,6 +64,14 @@ namespace FlightRecorder.Client
 
             currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
             Title += " " + currentVersion;
+        }
+
+        private void StateMachine_StateChanged(object sender, StateChangedEventArgs e)
+        {
+            if (e.By == StateMachine.Event.Stop)
+            {
+                Draw(false);
+            }
         }
 
         private void RecorderLogic_RecordsUpdated(object sender, EventArgs e)
@@ -88,17 +101,16 @@ namespace FlightRecorder.Client
         {
             imageLogic.ClearCache();
 
-            Dispatcher.Invoke(() =>
+            Dispatcher.Invoke(async () =>
             {
-                viewModel.State = State.Idle;
-                viewModel.CurrentFrame = 0;
-
-                Draw();
+                await stateMachine.TransitAsync(StateMachine.Event.Stop);
             });
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            await stateMachine.TransitAsync(StateMachine.Event.StartUp);
+
             viewModel.SimConnectState = SimConnectState.Connecting;
 
             // Create an event handle for the WPF window to listen for SimConnect events
@@ -106,6 +118,18 @@ namespace FlightRecorder.Client
             var HandleSource = HwndSource.FromHwnd(Handle); // Get source of handle in order to add event handlers to it
             HandleSource.AddHook(HandleHook);
             InitializeConnector();
+        }
+
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (stateMachine.CurrentState != StateMachine.State.End)
+            {
+                e.Cancel = true;
+                if (await stateMachine.TransitAsync(StateMachine.Event.Exit))
+                {
+                    Application.Current.Shutdown();
+                }
+            }
         }
 
         private IntPtr HandleHook(IntPtr hWnd, int message, IntPtr wParam, IntPtr lParam, ref bool isHandled)
@@ -136,24 +160,22 @@ namespace FlightRecorder.Client
             recorderLogic.Tick();
         }
 
-        private void Connector_Closed(object sender, EventArgs e)
+        private async void Connector_Closed(object sender, EventArgs e)
         {
+            await stateMachine.TransitAsync(StateMachine.Event.Disconnect);
+
             logger.LogDebug("Start reconnecting...");
             InitializeConnector();
         }
 
-        private void ButtonRecord_Click(object sender, RoutedEventArgs e)
+        private async void ButtonRecord_Click(object sender, RoutedEventArgs e)
         {
-            recorderLogic.Record();
-            viewModel.State = State.Recording;
-            viewModel.CurrentFrame = 0;
+            await stateMachine.TransitAsync(StateMachine.Event.Record);
         }
 
-        private void ButtonStop_Click(object sender, RoutedEventArgs e)
+        private async void ButtonStop_Click(object sender, RoutedEventArgs e)
         {
-            recorderLogic.StopRecording();
-            viewModel.State = State.Idle;
-            Draw(false);
+            await stateMachine.TransitAsync(StateMachine.Event.Stop);
         }
 
         private void ButtonChangeSpeed_Click(object sender, RoutedEventArgs e)
@@ -161,45 +183,30 @@ namespace FlightRecorder.Client
             (sender as Button).ContextMenu.IsOpen = true;
         }
 
-        private void ButtonReplay_Click(object sender, RoutedEventArgs e)
+        private async void ButtonReplay_Click(object sender, RoutedEventArgs e)
         {
-            if (!recorderLogic.Replay())
-            {
-                MessageBox.Show("Nothing to replay");
-                return;
-            }
-
-            viewModel.State = State.Replaying;
+            await stateMachine.TransitAsync(StateMachine.Event.Replay);
         }
 
-        private void ButtonPauseReplay_Click(object sender, RoutedEventArgs e)
+        private async void ButtonPauseReplay_Click(object sender, RoutedEventArgs e)
         {
-            if (recorderLogic.PauseReplay())
-            {
-                viewModel.State = State.Pausing;
-            }
+            await stateMachine.TransitAsync(StateMachine.Event.Pause);
         }
 
-        private void ButtonResumeReplay_Click(object sender, RoutedEventArgs e)
+        private async void ButtonResumeReplay_Click(object sender, RoutedEventArgs e)
         {
-            if (recorderLogic.ResumeReplay())
-            {
-                viewModel.State = State.Replaying;
-            }
+            await stateMachine.TransitAsync(StateMachine.Event.Resume);
         }
 
-        private void ButtonStopReplay_Click(object sender, RoutedEventArgs e)
+        private async void ButtonStopReplay_Click(object sender, RoutedEventArgs e)
         {
-            if (recorderLogic.StopReplay())
-            {
-                // NOTE: state transit does not happen here, it will hapen when the loop is broken
-            }
+            await stateMachine.TransitAsync(StateMachine.Event.RequestStopping);
         }
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             recorderLogic.Seek((int)e.NewValue);
-            Draw(viewModel.State == State.Recording || viewModel.State == State.Replaying);
+            Draw(viewModel.IsThrottlingChart);
         }
 
         private void Slider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
@@ -222,7 +229,7 @@ namespace FlightRecorder.Client
             }
         }
 
-        private void ButtonSave_Click(object sender, RoutedEventArgs e)
+        private async void ButtonSave_Click(object sender, RoutedEventArgs e)
         {
             if (!recorderLogic.CanSave)
             {
@@ -257,6 +264,8 @@ namespace FlightRecorder.Client
                     writer.Flush();
 
                     outStream.Finish();
+
+                    await stateMachine.TransitAsync(StateMachine.Event.Save);
                 }
 
                 logger.LogDebug("Save file into {fileName}", dialog.FileName);
@@ -289,43 +298,12 @@ namespace FlightRecorder.Client
             }
         }
 
-        private void ButtonLoad_Click(object sender, RoutedEventArgs e)
+        private async void ButtonLoad_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog
+            if (await stateMachine.TransitAsync(StateMachine.Event.Load))
             {
-                Filter = "Recorded Flight|*.flightrecorder"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    using var file = dialog.OpenFile();
-                    using var zipFile = new ZipFile(file);
-
-                    foreach (ZipEntry entry in zipFile)
-                    {
-                        if (entry.IsFile && entry.Name == "data.json")
-                        {
-                            using var stream = zipFile.GetInputStream(entry);
-
-                            var reader = new StreamReader(stream);
-                            var dataString = reader.ReadToEnd();
-
-                            var savedData = JsonSerializer.Deserialize<SavedData>(dataString);
-
-                            recorderLogic.FromData(savedData);
-                            imageLogic.ClearCache();
-
-                            Draw();
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Cannot load file");
-                    MessageBox.Show("The selected file is not a valid recording or not accessible!\n\nAre you sure you are opening a *.flightrecorder file?", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                imageLogic.ClearCache();
+                Draw();
             }
         }
 
@@ -378,8 +356,7 @@ namespace FlightRecorder.Client
                     try
                     {
                         connector.Initialize(Handle);
-                        viewModel.SimConnectState = SimConnectState.Connected;
-                        recorderLogic.Initialize();
+                        await stateMachine.TransitAsync(StateMachine.Event.Connect);
                         break;
                     }
                     catch (BadImageFormatException)
