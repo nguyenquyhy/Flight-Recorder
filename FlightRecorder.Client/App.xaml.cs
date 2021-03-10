@@ -45,7 +45,11 @@ namespace FlightRecorder.Client
                 catch { }
             }
 
+#if DEBUG
+            AppCenter.Start("cd6afedd-0333-4624-af0c-91eaf5273f15", typeof(Analytics), typeof(Crashes));
+#else
             AppCenter.Start("5525090f-eddc-4bca-bdd9-5b5fdc301ed0", typeof(Analytics), typeof(Crashes));
+#endif
 
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
