@@ -136,13 +136,13 @@ namespace FlightRecorder.Client
 
 
             // Shortcut path
-            Register(Transition.From(State.Recording).To(State.DisconnectedUnsaved).By(Event.Disconnect).Via(Event.RequestStopping, Event.Stop, Event.Disconnect).WaitFor(Event.Stop));
+            Register(Transition.From(State.Recording).To(State.DisconnectedUnsaved).By(Event.Disconnect).Via(Event.Stop, Event.Disconnect));
             Register(Transition.From(State.ReplayingSaved).To(State.DisconnectedSaved).By(Event.Disconnect).Via(Event.RequestStopping, Event.Stop, Event.Disconnect).WaitFor(Event.Stop));
             Register(Transition.From(State.ReplayingUnsaved).To(State.DisconnectedUnsaved).By(Event.Disconnect).Via(Event.RequestStopping, Event.Stop, Event.Disconnect).WaitFor(Event.Stop));
             Register(Transition.From(State.PausingSaved).To(State.DisconnectedSaved).By(Event.Disconnect).Via(Event.RequestStopping, Event.Stop, Event.Disconnect).WaitFor(Event.Stop));
             Register(Transition.From(State.PausingUnsaved).To(State.DisconnectedUnsaved).By(Event.Disconnect).Via(Event.RequestStopping, Event.Stop, Event.Disconnect).WaitFor(Event.Stop));
 
-            Register(Transition.From(State.Recording).To(State.End).By(Event.Exit).Via(Event.RequestStopping, Event.Stop, Event.Exit).WaitFor(Event.Stop));
+            Register(Transition.From(State.Recording).To(State.End).By(Event.Exit).Via(Event.Stop, Event.Exit));
             Register(Transition.From(State.ReplayingSaved).To(State.End).By(Event.Exit).Via(Event.RequestStopping, Event.Stop, Event.Exit).WaitFor(Event.Stop));
             Register(Transition.From(State.ReplayingUnsaved).To(State.End).By(Event.Exit).Via(Event.RequestStopping, Event.Stop, Event.Exit).WaitFor(Event.Stop));
             Register(Transition.From(State.PausingSaved).To(State.End).By(Event.Exit).Via(Event.RequestStopping, Event.Stop, Event.Exit).WaitFor(Event.Stop));
@@ -202,69 +202,75 @@ namespace FlightRecorder.Client
 
             var success = true;
 
-            // TODO: handle unknown event
-            var transition = stateLogics[CurrentState][e];
-            if (transition.ViaEvents != null)
+            if (stateLogics[CurrentState].TryGetValue(e, out var transition))
             {
-                foreach (var via in transition.ViaEvents)
+                if (transition.ViaEvents != null)
                 {
-                    // TODO: maybe recurse here?
-
-                    if (transition.WaitForEvents != null && transition.WaitForEvents.Contains(via))
+                    foreach (var via in transition.ViaEvents)
                     {
-                        var tcs = new TaskCompletionSource<State>();
-                        waitingTasks.TryAdd(via, tcs);
-                        await tcs.Task;
+                        // TODO: maybe recurse here?
 
-                        // This event is completed asynchronously in another thread, so it doesn't need to trigger here
-                    }
-                    else
-                    {
-                        var oldState = CurrentState;
-                        var resultingState = stateLogics[oldState][via].Execute();
-                        if (resultingState.HasValue)
+                        if (transition.WaitForEvents != null && transition.WaitForEvents.Contains(via))
                         {
-                            CurrentState = resultingState.Value;
+                            var tcs = new TaskCompletionSource<State>();
+                            waitingTasks.TryAdd(via, tcs);
+                            await tcs.Task;
 
-                            StateChanged?.Invoke(this, new StateChangedEventArgs(oldState, resultingState.Value, via));
+                            // This event is completed asynchronously in another thread, so it doesn't need to trigger here
                         }
                         else
                         {
-                            success = false;
-                        }
-                        logger.LogInformation("Triggered event {via} due to {event} from state {state} to {resultingState}", via, e, oldState, resultingState);
+                            var oldState = CurrentState;
+                            var resultingState = stateLogics[oldState][via].Execute();
+                            if (resultingState.HasValue)
+                            {
+                                CurrentState = resultingState.Value;
 
-                        if (!success)
-                        {
-                            break;
+                                StateChanged?.Invoke(this, new StateChangedEventArgs(oldState, resultingState.Value, via));
+                            }
+                            else
+                            {
+                                success = false;
+                            }
+                            logger.LogInformation("Triggered event {via} due to {event} from state {state} to {resultingState}", via, e, oldState, resultingState);
+
+                            if (!success)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
+                else
+                {
+                    var oldState = CurrentState;
+                    var resultingState = transition.Execute();
+
+                    if (resultingState.HasValue)
+                    {
+                        CurrentState = resultingState.Value;
+
+                        StateChanged?.Invoke(this, new StateChangedEventArgs(oldState, resultingState.Value, e));
+                    }
+                    else
+                    {
+                        success = false;
+                    }
+                    logger.LogInformation("Triggered event {event} from state {state} to {resultingState}", e, oldState, resultingState);
+
+                    if (waitingTasks.TryRemove(e, out var waitingTask))
+                    {
+                        waitingTask.SetResult(CurrentState);
+                    }
+                }
+
+                return success;
             }
             else
             {
-                var oldState = CurrentState;
-                var resultingState = transition.Execute();
-
-                if (resultingState.HasValue)
-                {
-                    CurrentState = resultingState.Value;
-
-                    StateChanged?.Invoke(this, new StateChangedEventArgs(oldState, resultingState.Value, e));
-                }
-                else
-                {
-                    success = false;
-                }
-                logger.LogInformation("Triggered event {event} from state {state} to {resultingState}", e, oldState, resultingState);
-
-                if (waitingTasks.TryRemove(e, out var waitingTask))
-                {
-                    waitingTask.SetResult(CurrentState);
-                }
+                logger.LogError("Cannot trigger {event} from {state}", e, CurrentState);
+                throw new InvalidOperationException($"Cannot trigger {e} from {CurrentState}!");
             }
-
-            return success;
         }
 
         private void Register(Transition logic)
