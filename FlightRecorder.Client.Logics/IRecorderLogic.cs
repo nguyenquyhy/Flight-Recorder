@@ -23,6 +23,7 @@ namespace FlightRecorder.Client.Logics
         bool StopReplay();
         void Tick();
         void ChangeRate(double rate);
+        public double GetRate();
         void Unfreeze();
 
         void FromData(SavedData data);
