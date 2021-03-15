@@ -4,6 +4,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -90,6 +91,23 @@ namespace FlightRecorder.Client
             recorderLogic.ReplayFinished += RecorderLogic_ReplayFinished;
 
             currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
+
+            var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Flight-Recorder"));
+            var releases = client.Repository.Release.GetAll("nguyenquyhy", "Flight-Recorder").Result;
+            var latest = releases[0];
+
+            string version = latest.Name.Replace("Version", "").Trim();
+            if(currentVersion.IndexOf(version) < 0)
+            {
+                if(MessageBox.Show("A new version of Flight Record is available. Do you want to upgrade now ?", "Attention",MessageBoxButton.YesNo,MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    string dir_app = System.IO.Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
+                    Process.Start(dir_app + @"\Updater\FlightRecorder.Updater.exe");
+                    Application.Current.Shutdown();
+                }
+            }
+
+
             Title += " " + currentVersion;
         }
 
@@ -486,10 +504,10 @@ namespace FlightRecorder.Client
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-
             Handle = new WindowInteropHelper(this).Handle;
             _source = HwndSource.FromHwnd(Handle);
             _source.AddHook(HwndHook);
+
             #region Register HOT Keys
             RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT, VK_R);  //Record
             RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT, VK_S);  //StopRecord
@@ -503,7 +521,29 @@ namespace FlightRecorder.Client
             RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT, VK_NEXT); //Diminue Velocidade
             #endregion Register HOT Keys
 
-
+            #region Updater
+            string dir_app = System.IO.Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName).ToString();
+            if (Directory.Exists(dir_app + @"\Updater"))
+            {
+                if(File.Exists(dir_app + @"\Updater\FlightRecorder.Updater.exe"))
+                {
+                    var currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
+                    var client_github = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Flight-Recorder"));
+                    var releases = client_github.Repository.Release.GetAll("nguyenquyhy", "Flight-Recorder").Result;
+                    var latest = releases[0];
+                    //currentVersion = "0.10";
+                    string version = latest.Name.Replace("Version", "").Trim();
+                    if (currentVersion.IndexOf(version) < 0)
+                    {
+                        if (MessageBox.Show("A new version of Flight Record is available. Do you want to upgrade now ?", "Attention", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                        {
+                            Process.Start(dir_app + @"\Updater\FlightRecorder.Updater.exe");
+                            Application.Current.Shutdown();
+                        }
+                    }
+                }
+            }
+            #endregion Updater
         }
 
 
@@ -680,8 +720,11 @@ namespace FlightRecorder.Client
 
         protected override void OnClosed(EventArgs e)
         {
-            _source.RemoveHook(HwndHook);
-            UnregisterHotKey(Handle, HOTKEY_ID);
+            if(_source == null)
+            {
+                _source.RemoveHook(HwndHook);
+                UnregisterHotKey(Handle, HOTKEY_ID);
+            }
             base.OnClosed(e);
         }
         #endregion HotKeys
