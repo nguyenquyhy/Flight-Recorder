@@ -179,6 +179,10 @@ namespace FlightRecorder.Client.Logics
             this.rate = rate;
         }
 
+        public double GetRate()
+        {
+            return this.rate;
+        }
         public void Tick()
         {
             if (IsReplaying || IsPausing)
