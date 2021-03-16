@@ -192,6 +192,10 @@
                     <TextBlock Text="{Binding IsOnGround}" Grid.Row="8" Grid.Column="1" />
                 </Grid>
             </Grid>
+            <Grid Margin="0,8,0,0">
+                <CheckBox x:Name="chkAutoUpdate" Content="Automatic Updates" Checked="chkAutoUpdate_CheckedChanged" Unchecked="chkAutoUpdate_CheckedChanged"/>
+            </Grid>
         </StackPanel>
+
     </Grid>
 </Window>

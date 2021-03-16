@@ -34,6 +34,7 @@ namespace FlightRecorder.Client
         private readonly ThrottleLogic drawingThrottleLogic;
         private readonly StateMachine stateMachine;
         private readonly string currentVersion;
+        private readonly UserConfig userConfig;
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
@@ -92,21 +93,11 @@ namespace FlightRecorder.Client
 
             currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
 
-            var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Flight-Recorder"));
-            var releases = client.Repository.Release.GetAll("nguyenquyhy", "Flight-Recorder").Result;
-            var latest = releases[0];
+    
+            userConfig = new();
+            this.chkAutoUpdate.IsChecked = userConfig.AutomaticUpdate;
 
-            string version = latest.Name.Replace("Version", "").Trim();
-            if(currentVersion.IndexOf(version) < 0)
-            {
-                if(MessageBox.Show("A new version of Flight Record is available. Do you want to upgrade now ?", "Attention",MessageBoxButton.YesNo,MessageBoxImage.Question) == MessageBoxResult.Yes)
-                {
-                    string dir_app = System.IO.Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
-                    Process.Start(dir_app + @"\Updater\FlightRecorder.Updater.exe");
-                    Application.Current.Shutdown();
-                }
-            }
-
+           
 
             Title += " " + currentVersion;
         }
@@ -121,6 +112,7 @@ namespace FlightRecorder.Client
 
         private void RecorderLogic_RecordsUpdated(object sender, EventArgs e)
         {
+           
             Dispatcher.Invoke(() =>
             {
                 viewModel.FrameCount = recorderLogic.Records?.Count ?? 0;
@@ -355,7 +347,7 @@ namespace FlightRecorder.Client
         private void ButtonShowData_Click(object sender, RoutedEventArgs e)
         {
             viewModel.ShowData = !viewModel.ShowData;
-            Height = viewModel.ShowData ? 420 : 275;
+            Height = viewModel.ShowData ? 450 : 275;
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -522,27 +514,31 @@ namespace FlightRecorder.Client
             #endregion Register HOT Keys
 
             #region Updater
-            string dir_app = System.IO.Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName).ToString();
-            if (Directory.Exists(dir_app + @"\Updater"))
+            if((bool)this.chkAutoUpdate.IsChecked)
             {
-                if(File.Exists(dir_app + @"\Updater\FlightRecorder.Updater.exe"))
+                string dir_app = System.IO.Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName).ToString();
+                if (Directory.Exists(dir_app + @"\Updater"))
                 {
-                    var currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
-                    var client_github = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Flight-Recorder"));
-                    var releases = client_github.Repository.Release.GetAll("nguyenquyhy", "Flight-Recorder").Result;
-                    var latest = releases[0];
-                    //currentVersion = "0.10";
-                    string version = latest.Name.Replace("Version", "").Trim();
-                    if (currentVersion.IndexOf(version) < 0)
+                    if (File.Exists(dir_app + @"\Updater\FlightRecorder.Updater.exe"))
                     {
-                        if (MessageBox.Show("A new version of Flight Record is available. Do you want to upgrade now ?", "Attention", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                        var currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
+                        var client_github = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Flight-Recorder"));
+                        var releases = client_github.Repository.Release.GetAll("nguyenquyhy", "Flight-Recorder").Result;
+                        var latest = releases[0];
+                        //currentVersion = "0.10";
+                        string version = latest.Name.Replace("Version", "").Trim();
+                        if (currentVersion.IndexOf(version) < 0)
                         {
-                            Process.Start(dir_app + @"\Updater\FlightRecorder.Updater.exe");
-                            Application.Current.Shutdown();
+                            if (MessageBox.Show("A new version of Flight Record is available. Do you want to upgrade now ?", "Attention", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                            {
+                                Process.Start(dir_app + @"\Updater\FlightRecorder.Updater.exe");
+                                Application.Current.Shutdown();
+                            }
                         }
                     }
                 }
             }
+
             #endregion Updater
         }
 
@@ -762,5 +758,11 @@ namespace FlightRecorder.Client
             await stateMachine.TransitAsync(StateMachine.Event.RequestStopping);
         }
         #endregion Actions
+
+        private void chkAutoUpdate_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            userConfig.SetAutomaticUpdateValue((bool)chkAutoUpdate.IsChecked);
+        }
+
     }
 }
