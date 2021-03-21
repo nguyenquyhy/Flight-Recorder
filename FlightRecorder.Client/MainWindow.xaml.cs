@@ -287,14 +287,21 @@ namespace FlightRecorder.Client
             };
             if (dialog.ShowDialog() == true)
             {
-                await exportLogic.ExportAsync(dialog.FileName, recorderLogic.Records.Select(o =>
+                try
                 {
-                    var result = AircraftPosition.FromStruct(o.position);
-                    result.Milliseconds = o.milliseconds;
-                    return result;
-                }));
+                    await exportLogic.ExportAsync(dialog.FileName, recorderLogic.Records.Select(o =>
+                    {
+                        var result = AircraftPosition.FromStruct(o.position);
+                        result.Milliseconds = o.milliseconds;
+                        return result;
+                    }));
 
-                logger.LogDebug("Save file into {fileName}", dialog.FileName);
+                    logger.LogDebug("Save file into {fileName}", dialog.FileName);
+                }
+                catch (IOException)
+                {
+                    MessageBox.Show("Flight Recorder cannot write the file to disk.\nPlease make sure the folder is accessible by Flight Recorder, and you are not overwriting a locked file.", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
