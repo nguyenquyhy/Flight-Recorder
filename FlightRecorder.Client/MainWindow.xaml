@@ -168,6 +168,7 @@
                         <RowDefinition />
                         <RowDefinition />
                         <RowDefinition />
+                        <RowDefinition />
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="Latitude" Grid.Row="0" Grid.Column="0" />
@@ -190,6 +191,8 @@
                     <TextBlock Text="{Binding GearHandlePosition}" Grid.Row="7" Grid.Column="1" />
                     <TextBlock Text="Is On Ground" Grid.Row="8" Grid.Column="0" />
                     <TextBlock Text="{Binding IsOnGround}" Grid.Row="8" Grid.Column="1" />
+                    <TextBlock Text="Landing Rate" Grid.Row="9" Grid.Column="0" />
+                    <TextBlock Text="{Binding TouchdownNormalVelocity}" Grid.Row="9" Grid.Column="1" />
                 </Grid>
             </Grid>
         </StackPanel>

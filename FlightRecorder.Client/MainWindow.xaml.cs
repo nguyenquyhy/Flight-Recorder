@@ -317,7 +317,7 @@ namespace FlightRecorder.Client
         private void ButtonShowData_Click(object sender, RoutedEventArgs e)
         {
             viewModel.ShowData = !viewModel.ShowData;
-            Height = viewModel.ShowData ? 420 : 275;
+            Height = viewModel.ShowData ? 440 : 275;
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
