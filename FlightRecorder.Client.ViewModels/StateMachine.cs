@@ -71,11 +71,13 @@ namespace FlightRecorder.Client
             Register(Transition.From(State.DisconnectedEmpty).To(State.IdleEmpty).By(Event.Connect).Then(Connect).ThenUpdate(viewModel));
             Register(Transition.From(State.DisconnectedEmpty).To(State.DisconnectedSaved).By(Event.Load).Then(LoadRecording).ThenUpdate(viewModel));
             Register(Transition.From(State.DisconnectedEmpty).To(State.End).By(Event.Exit)); // NO-OP
+            Register(Transition.From(State.DisconnectedEmpty).To(State.DisconnectedEmpty).By(Event.Disconnect)); // NO-OP
 
             Register(Transition.From(State.DisconnectedSaved).To(State.IdleSaved).By(Event.Connect).Then(Connect).ThenUpdate(viewModel));
             Register(Transition.From(State.DisconnectedSaved).To(State.DisconnectedSaved).By(Event.Save).ThenUpdate(viewModel));
             Register(Transition.From(State.DisconnectedSaved).To(State.DisconnectedSaved).By(Event.Load).Then(LoadRecording).ThenUpdate(viewModel));
             Register(Transition.From(State.DisconnectedSaved).To(State.End).By(Event.Exit)); // NO-OP
+            Register(Transition.From(State.DisconnectedSaved).To(State.DisconnectedSaved).By(Event.Disconnect)); // NO-OP
 
             Register(Transition.From(State.DisconnectedUnsaved).To(State.IdleUnsaved).By(Event.Connect).Then(Connect).ThenUpdate(viewModel));
             Register(Transition.From(State.DisconnectedUnsaved).To(State.DisconnectedSaved).By(Event.Save).ThenUpdate(viewModel));
@@ -87,6 +89,7 @@ namespace FlightRecorder.Client
             {
                 return dialogLogic.Confirm("You haven't saved the recording.\n\nDo you want to exit Flight Recorder without saving?");
             }));
+            Register(Transition.From(State.DisconnectedUnsaved).To(State.DisconnectedUnsaved).By(Event.Disconnect)); // NO-OP
 
             Register(Transition.From(State.IdleEmpty).To(State.DisconnectedEmpty).By(Event.Disconnect).ThenUpdate(viewModel));
             Register(Transition.From(State.IdleEmpty).To(State.Recording).By(Event.Record).Then(StartRecording).ThenUpdate(viewModel));
