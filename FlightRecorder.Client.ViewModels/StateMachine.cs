@@ -202,7 +202,7 @@ namespace FlightRecorder.Client
 
             var success = true;
 
-            if (stateLogics[CurrentState].TryGetValue(e, out var transition))
+            if (stateLogics.TryGetValue(CurrentState, out var transitions) && transitions.TryGetValue(e, out var transition))
             {
                 if (transition.ViaEvents != null)
                 {
