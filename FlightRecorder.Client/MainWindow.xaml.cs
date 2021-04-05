@@ -247,28 +247,34 @@ namespace FlightRecorder.Client
                 var data = recorderLogic.ToData(currentVersion);
                 var dataString = JsonSerializer.Serialize(data);
 
-                using (var fileStream = new FileStream(dialog.FileName, FileMode.Create))
+                try
                 {
-                    using var outStream = new ZipOutputStream(fileStream);
-
-                    outStream.SetLevel(9);
-
-                    var entry = new ZipEntry("data.json")
+                    using (var fileStream = new FileStream(dialog.FileName, FileMode.Create))
                     {
-                        DateTime = DateTime.Now
-                    };
-                    outStream.PutNextEntry(entry);
+                        using var outStream = new ZipOutputStream(fileStream);
 
-                    var writer = new StreamWriter(outStream);
-                    writer.Write(dataString);
-                    writer.Flush();
+                        outStream.SetLevel(9);
 
-                    outStream.Finish();
+                        var entry = new ZipEntry("data.json")
+                        {
+                            DateTime = DateTime.Now
+                        };
+                        outStream.PutNextEntry(entry);
+
+                        var writer = new StreamWriter(outStream);
+                        writer.Write(dataString);
+                        writer.Flush();
+
+                        outStream.Finish();
+                    }
 
                     await stateMachine.TransitAsync(StateMachine.Event.Save);
+                    logger.LogDebug("Saved file into {fileName}", dialog.FileName);
                 }
-
-                logger.LogDebug("Save file into {fileName}", dialog.FileName);
+                catch (UnauthorizedAccessException)
+                {
+                    MessageBox.Show("Flight Recorder cannot write the file to disk.\nPlease make sure the folder is accessible by Flight Recorder, and you are not overwriting a locked file.", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
