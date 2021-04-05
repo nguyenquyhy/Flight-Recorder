@@ -98,6 +98,11 @@ namespace FlightRecorder.Client.Logics
 
             replayMilliseconds = stopwatch.ElapsedMilliseconds;
 
+            if (Records.Any())
+            {
+                connector.Init(Records.First().position);
+            }
+
             Task.Run(RunReplay);
 
             return true;
@@ -141,6 +146,8 @@ namespace FlightRecorder.Client.Logics
                 }
                 pausedMilliseconds = null;
                 // NOTE: pausedFrame is not cleared here to allow resuming in the loop
+
+                connector.Init(Records[currentFrame].position);
 
                 return true;
             }

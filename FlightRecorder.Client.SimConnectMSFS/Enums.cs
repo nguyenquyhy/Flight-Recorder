@@ -15,6 +15,7 @@
 
     enum DEFINITIONS
     {
+        AircraftPositionInitial,
         AircraftPosition,
         AircraftPositionSet,
     }

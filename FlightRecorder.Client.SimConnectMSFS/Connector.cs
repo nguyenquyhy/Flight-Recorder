@@ -34,6 +34,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
             simconnect.OnRecvSimobjectData += Simconnect_OnRecvSimobjectData;
             RegisterAircraftPositionDefinition();
             RegisterAircraftPositionSetDefinition();
+            simconnect.AddToDataDefinition(DEFINITIONS.AircraftPositionInitial, "Initial Position", null, SIMCONNECT_DATATYPE.INITPOSITION, 0.0f, SimConnect.SIMCONNECT_UNUSED);
 
             simconnect.OnRecvEventFrame += Simconnect_OnRecvEventFrame;
 
@@ -64,6 +65,23 @@ namespace FlightRecorder.Client.SimConnectMSFS
             simconnect?.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_LATITUDE_LONGITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
             simconnect?.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ALTITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
             simconnect?.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ATTITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+        }
+
+        public void Init(AircraftPositionStruct position)
+        {
+            logger.LogDebug("Set initial position");
+            simconnect.SetDataOnSimObject(DEFINITIONS.AircraftPositionInitial, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_DATA_SET_FLAG.DEFAULT,
+                new SIMCONNECT_DATA_INITPOSITION
+                {
+                    Latitude = position.Latitude,
+                    Longitude = position.Longitude,
+                    Altitude = position.Altitude,
+                    Pitch = position.Pitch,
+                    Bank = position.Bank,
+                    Heading = position.TrueHeading,
+                    OnGround = position.IsOnGround,
+                    Airspeed = 0
+                });
         }
 
         public void Set(AircraftPositionSetStruct position)
