@@ -127,7 +127,7 @@ namespace FlightRecorder.Client
                 e.Cancel = true;
                 if (await stateMachine.TransitAsync(StateMachine.Event.Exit))
                 {
-                    Application.Current.Shutdown();
+                    Application.Current?.Shutdown();
                 }
             }
         }
