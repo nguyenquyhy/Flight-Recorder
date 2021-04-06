@@ -134,7 +134,8 @@ namespace FlightRecorder.Client.Logics
         {
             if (IsPausing)
             {
-                if (currentFrame == pausedFrame)
+                var frame = currentFrame;
+                if (frame == pausedFrame)
                 {
                     // No seeking => Resume based on pause time
                     replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((pausedMilliseconds - replayMilliseconds) / rate * pausedRate);
@@ -142,12 +143,22 @@ namespace FlightRecorder.Client.Logics
                 else
                 {
                     // Resume based on seeked frame
-                    replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((Records[currentFrame].milliseconds - startMilliseconds) / rate);
+                    replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((Records[frame].milliseconds - startMilliseconds) / rate);
                 }
+
+                // Initialize resumed position
+                if (frame >= 0 && frame < Records.Count)
+                {
+                    connector.Init(Records[frame].position);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Cannot resume at frame {frame} because there are only {Records.Count} frames!");
+                }
+
+                // Signal unpaused
                 pausedMilliseconds = null;
                 // NOTE: pausedFrame is not cleared here to allow resuming in the loop
-
-                connector.Init(Records[currentFrame].position);
 
                 return true;
             }
