@@ -1,6 +1,5 @@
 ﻿using FlightRecorder.Client.Logics;
 using FlightRecorder.Client.SimConnectMSFS;
-using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System;
@@ -9,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -127,7 +125,10 @@ namespace FlightRecorder.Client
                 e.Cancel = true;
                 if (await stateMachine.TransitAsync(StateMachine.Event.Exit))
                 {
-                    Application.Current?.Shutdown();
+                    if (stateMachine.CurrentState == StateMachine.State.End)
+                    {
+                        Application.Current?.Shutdown();
+                    }
                 }
             }
         }
@@ -231,51 +232,7 @@ namespace FlightRecorder.Client
 
         private async void ButtonSave_Click(object sender, RoutedEventArgs e)
         {
-            if (!recorderLogic.CanSave)
-            {
-                MessageBox.Show("Nothing to save!");
-                return;
-            }
-
-            var dialog = new SaveFileDialog
-            {
-                FileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm}.flightrecorder",
-                Filter = "Recorded Flight|*.flightrecorder"
-            };
-            if (dialog.ShowDialog() == true)
-            {
-                var data = recorderLogic.ToData(currentVersion);
-                var dataString = JsonSerializer.Serialize(data);
-
-                try
-                {
-                    using (var fileStream = new FileStream(dialog.FileName, FileMode.Create))
-                    {
-                        using var outStream = new ZipOutputStream(fileStream);
-
-                        outStream.SetLevel(9);
-
-                        var entry = new ZipEntry("data.json")
-                        {
-                            DateTime = DateTime.Now
-                        };
-                        outStream.PutNextEntry(entry);
-
-                        var writer = new StreamWriter(outStream);
-                        writer.Write(dataString);
-                        writer.Flush();
-
-                        outStream.Finish();
-                    }
-
-                    await stateMachine.TransitAsync(StateMachine.Event.Save);
-                    logger.LogDebug("Saved file into {fileName}", dialog.FileName);
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    MessageBox.Show("Flight Recorder cannot write the file to disk.\nPlease make sure the folder is accessible by Flight Recorder, and you are not overwriting a locked file.", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            await stateMachine.TransitAsync(StateMachine.Event.Save);
         }
 
         private async void ButtonExport_Click(object sender, RoutedEventArgs e)

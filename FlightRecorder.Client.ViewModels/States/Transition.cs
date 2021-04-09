@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.Threading.Tasks;
 using static FlightRecorder.Client.StateMachine;
 
 namespace FlightRecorder.Client.ViewModels.States
@@ -12,9 +13,11 @@ namespace FlightRecorder.Client.ViewModels.States
         public State FromState { get; init; }
         public State ToState { get; init; }
         public Event ByEvent { get; init; }
-        public ImmutableList<Func<bool>> Actions { get; init; } = ImmutableList<Func<bool>>.Empty;
+        public ImmutableList<object> Actions { get; init; } = ImmutableList<object>.Empty;
         public Event[] ViaEvents { get; init; }
         public Event[] WaitForEvents { get; init; }
+        public bool ShouldRevertOnError { get; set; }
+        public string ErrorMessage { get; set; }
 
         public Transition To(State state) => this with { ToState = state };
 
@@ -23,20 +26,34 @@ namespace FlightRecorder.Client.ViewModels.States
         /// </summary>
         public Transition Then(Func<bool> action) => this with { Actions = Actions.Add(action) };
 
+        public Transition Then(Func<Task<bool>> action) => this with { Actions = Actions.Add(action) };
+
         public Transition By(Event e) => this with { ByEvent = e };
 
         public Transition Via(params Event[] events) => this with { ViaEvents = events };
 
         public Transition WaitFor(params Event[] events) => this with { WaitForEvents = events };
 
-        public State? Execute()
+        public Transition RevertOnError(string errorMessage) => this with { ShouldRevertOnError = true, ErrorMessage = errorMessage };
+
+        public async Task<State?> ExecuteAsync()
         {
             if (ViaEvents != null) throw new InvalidOperationException("This transition cannot be executed directly!");
 
             foreach (var action in Actions)
             {
-                if (!action())
-                    return null;
+                switch (action)
+                {
+                    case Func<bool> syncAction:
+                        if (!syncAction())
+                            return null;
+                        break;
+                    case Func<Task<bool>> asyncAction:
+                        if (!await asyncAction())
+                            return null;
+                        break;
+                }
+
             }
             return ToState;
         }

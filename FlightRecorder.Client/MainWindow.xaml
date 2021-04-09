@@ -40,13 +40,26 @@
             <Rectangle Style="{StaticResource SeparatorStyle}" />
 
             <Slider Maximum="{Binding FrameCount, Converter={StaticResource AdditionConverter}, ConverterParameter=-1}" Value="{Binding CurrentFrame}" SmallChange="1"
-                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=PausingSaved|PausingUnsaved}"
+                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=IdleUnsaved|IdleSaved|PausingSaved|PausingUnsaved}"
                     ValueChanged="Slider_ValueChanged" MouseWheel="Slider_MouseWheel" />
+
             <Grid x:Name="ImageWrapper" Height="50" HorizontalAlignment="Stretch" Margin="5,0">
-                <Image x:Name="ImageChart" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=Recording}" />
+                <Image x:Name="ImageChart" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                       Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=Recording|SavingDisconnected|SavingIdle|LoadingDisconnected|LoadingIdle}" />
+
                 <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"
                       Visibility="{Binding State, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=Recording}">
                     <TextBlock Text="Recording" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+                </Grid>
+
+                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"
+                      Visibility="{Binding State, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=SavingDisconnected|SavingIdle}">
+                    <TextBlock Text="Saving..." HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
+                </Grid>
+
+                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"
+                      Visibility="{Binding State, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=LoadingDisconnected|LoadingIdle}">
+                    <TextBlock Text="Loading..." HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" />
                 </Grid>
             </Grid>
 

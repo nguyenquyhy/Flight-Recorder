@@ -1,4 +1,5 @@
 ﻿using FlightRecorder.Client.Logics;
+using System.Threading.Tasks;
 
 namespace FlightRecorder.Client
 {
@@ -6,6 +7,7 @@ namespace FlightRecorder.Client
     {
         bool Confirm(string message);
         void Error(string error);
-        SavedData Load();
+        Task<bool> SaveAsync(SavedData data);
+        Task<SavedData> LoadAsync();
     }
 }

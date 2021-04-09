@@ -1,14 +1,26 @@
 ﻿using FlightRecorder.Client.Logics;
 using ICSharpCode.SharpZipLib.Zip;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
+using System;
 using System.IO;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace FlightRecorder.Client
 {
     public class DialogLogic : IDialogLogic
     {
+        private const string recorderFileFilter = "Recorded Flight|*.flightrecorder";
+
+        private readonly ILogger<DialogLogic> logger;
+
+        public DialogLogic(ILogger<DialogLogic> logger)
+        {
+            this.logger = logger;
+        }
+
         public bool Confirm(string message)
         {
             return MessageBox.Show(message, "Flight Recorder", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
@@ -19,11 +31,45 @@ namespace FlightRecorder.Client
             MessageBox.Show(error, "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
-        public SavedData Load()
+        public async Task<bool> SaveAsync(SavedData data)
+        {
+            var dialog = new SaveFileDialog
+            {
+                FileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm}.flightrecorder",
+                Filter = recorderFileFilter
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                using (var fileStream = new FileStream(dialog.FileName, FileMode.Create))
+                {
+                    using var outStream = new ZipOutputStream(fileStream);
+
+                    outStream.SetLevel(9);
+
+                    var entry = new ZipEntry("data.json")
+                    {
+                        DateTime = DateTime.Now
+                    };
+                    outStream.PutNextEntry(entry);
+
+                    await JsonSerializer.SerializeAsync(outStream, data);
+
+                    outStream.Finish();
+                }
+
+                logger.LogDebug("Saved file into {fileName}", dialog.FileName);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task<SavedData> LoadAsync()
         {
             var dialog = new OpenFileDialog
             {
-                Filter = "Recorded Flight|*.flightrecorder"
+                Filter = recorderFileFilter
             };
 
             if (dialog.ShowDialog() == true)
@@ -37,10 +83,11 @@ namespace FlightRecorder.Client
                     {
                         using var stream = zipFile.GetInputStream(entry);
 
-                        var reader = new StreamReader(stream);
-                        var dataString = reader.ReadToEnd();
+                        var result = await JsonSerializer.DeserializeAsync<SavedData>(stream);
 
-                        return JsonSerializer.Deserialize<SavedData>(dataString);
+                        logger.LogDebug("Loaded file from {fileName}", dialog.FileName);
+
+                        return result;
                     }
                 }
             }
