@@ -147,7 +147,11 @@ namespace FlightRecorder.Client.Logics
                 }
 
                 // Initialize resumed position
-                if (frame >= 0 && frame < Records.Count)
+                if (frame == -1)
+                {
+                    // Ignore as this happens when Pause is clicked before the first frame is calculated
+                }
+                else if (frame >= 0 && frame < Records.Count)
                 {
                     connector.Init(Records[frame].position);
                 }
