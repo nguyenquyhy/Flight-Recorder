@@ -1,5 +1,6 @@
 ﻿using FlightRecorder.Client.Logics;
 using FlightRecorder.Client.SimConnectMSFS;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System;
@@ -12,58 +13,45 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace FlightRecorder.Client
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : BaseWindow
     {
         private readonly ILogger<MainWindow> logger;
-        private readonly MainViewModel viewModel;
-        private readonly Connector connector;
-        private readonly IRecorderLogic recorderLogic;
-        private readonly IReplayLogic replayLogic;
-        private readonly ImageLogic imageLogic;
+        private readonly IConnector connector;
+        private readonly DrawingLogic drawingLogic;
         private readonly ExportLogic exportLogic;
-        private readonly ThrottleLogic drawingThrottleLogic;
-        private readonly StateMachine stateMachine;
+        private readonly IRecorderLogic recorderLogic;
+
         private readonly string currentVersion;
 
         private IntPtr Handle;
 
-        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector,
-            IRecorderLogic recorderLogic, IReplayLogic replayLogic,
-            ImageLogic imageLogic, ExportLogic exportLogic, ThrottleLogic drawingThrottleLogic, StateMachine stateMachine)
+        public MainWindow(ILogger<MainWindow> logger,
+            IConnector connector,
+            DrawingLogic drawingLogic,
+            ExportLogic exportLogic,
+            Orchestrator orchestrator)
+            : base(orchestrator.ThreadLogic, orchestrator.StateMachine, orchestrator.ViewModel, orchestrator.ReplayLogic)
         {
             InitializeComponent();
 
-            this.Loaded += MainWindow_Loaded;
             this.logger = logger;
-            this.viewModel = viewModel;
             this.connector = connector;
-            this.recorderLogic = recorderLogic;
-            this.replayLogic = replayLogic;
-            this.imageLogic = imageLogic;
+            this.drawingLogic = drawingLogic;
             this.exportLogic = exportLogic;
-            this.drawingThrottleLogic = drawingThrottleLogic;
-            this.stateMachine = stateMachine;
+            this.recorderLogic = orchestrator.RecorderLogic;
 
             stateMachine.StateChanged += StateMachine_StateChanged;
 
-            connector.SimStateUpdated += Connector_SimStateUpdated;
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
             connector.Closed += Connector_Closed;
 
             DataContext = viewModel;
-
-            recorderLogic.RecordsUpdated += RecorderLogic_RecordsUpdated;
-            replayLogic.RecordsUpdated += ReplayLogic_RecordsUpdated;
-            replayLogic.CurrentFrameChanged += ReplayLogic_CurrentFrameChanged;
-            replayLogic.ReplayFinished += ReplayLogic_ReplayFinished;
 
             currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
             Title += " " + currentVersion;
@@ -73,60 +61,15 @@ namespace FlightRecorder.Client
         {
             if (e.By == StateMachine.Event.Stop)
             {
-                Draw(false);
+                // Stop recording
+                drawingLogic.ClearCache();
+                Draw();
             }
         }
 
-        private void RecorderLogic_RecordsUpdated(object sender, RecordsUpdatedEventArgs e)
+        protected async override Task Window_LoadedAsync(object sender, RoutedEventArgs e)
         {
-            Dispatcher.Invoke(() =>
-            {
-                viewModel.FileName = e.FileName;
-                viewModel.AircraftTitle = e.AircraftTitle;
-                viewModel.FrameCount = e.RecordCount;
-            });
-        }
-
-        private void ReplayLogic_RecordsUpdated(object sender, RecordsUpdatedEventArgs e)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                viewModel.FileName = e.FileName;
-                viewModel.AircraftTitle = e.AircraftTitle;
-                viewModel.FrameCount = e.RecordCount;
-            });
-        }
-
-        private void ReplayLogic_CurrentFrameChanged(object sender, CurrentFrameChangedEventArgs e)
-        {
-            try
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    viewModel.CurrentFrame = e.CurrentFrame;
-                });
-            }
-            catch (TaskCanceledException)
-            {
-                // Exiting
-            }
-        }
-
-        private void ReplayLogic_ReplayFinished(object sender, EventArgs e)
-        {
-            imageLogic.ClearCache();
-
-            Dispatcher.Invoke(async () =>
-            {
-                await stateMachine.TransitAsync(StateMachine.Event.Stop);
-            });
-        }
-
-        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            await stateMachine.TransitAsync(StateMachine.Event.StartUp);
-
-            viewModel.SimConnectState = SimConnectState.Connecting;
+            await base.Window_LoadedAsync(sender, e);
 
             // Create an event handle for the WPF window to listen for SimConnect events
             Handle = new WindowInteropHelper(sender as Window).Handle; // Get handle of main WPF Window
@@ -165,14 +108,6 @@ namespace FlightRecorder.Client
             }
         }
 
-        private void Connector_SimStateUpdated(object sender, SimStateUpdatedEventArgs e)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                viewModel.SimState = SimState.FromStruct(e.State);
-            });
-        }
-
         private void Connector_AircraftPositionUpdated(object sender, AircraftPositionUpdatedEventArgs e)
         {
             recorderLogic.NotifyPosition(e.Position);
@@ -184,10 +119,8 @@ namespace FlightRecorder.Client
             });
         }
 
-        private async void Connector_Closed(object sender, EventArgs e)
+        private void Connector_Closed(object sender, EventArgs e)
         {
-            await stateMachine.TransitAsync(StateMachine.Event.Disconnect);
-
             logger.LogDebug("Start reconnecting...");
             InitializeConnector();
         }
@@ -202,55 +135,13 @@ namespace FlightRecorder.Client
             await stateMachine.TransitAsync(StateMachine.Event.Stop);
         }
 
-        private void ButtonChangeSpeed_Click(object sender, RoutedEventArgs e)
+        private void ButtonReplayAI_Click(object sender, RoutedEventArgs e)
         {
-            (sender as Button).ContextMenu.IsOpen = true;
-        }
-
-        private async void ButtonReplay_Click(object sender, RoutedEventArgs e)
-        {
-            await stateMachine.TransitAsync(StateMachine.Event.Replay);
-        }
-
-        private async void ButtonPauseReplay_Click(object sender, RoutedEventArgs e)
-        {
-            await stateMachine.TransitAsync(StateMachine.Event.Pause);
-        }
-
-        private async void ButtonResumeReplay_Click(object sender, RoutedEventArgs e)
-        {
-            await stateMachine.TransitAsync(StateMachine.Event.Resume);
-        }
-
-        private async void ButtonStopReplay_Click(object sender, RoutedEventArgs e)
-        {
-            await stateMachine.TransitAsync(StateMachine.Event.RequestStopping);
-        }
-
-        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            replayLogic.Seek((int)e.NewValue);
-            Draw(viewModel.IsThrottlingChart);
-        }
-
-        private void Slider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
-        {
-            var currentFrame = viewModel.CurrentFrame;
-            switch (e.Delta)
-            {
-                case > 0:
-                    if (currentFrame > 0)
-                    {
-                        viewModel.CurrentFrame = currentFrame - 1;
-                    }
-                    break;
-                case < 0:
-                    if (currentFrame < viewModel.FrameCount - 1)
-                    {
-                        viewModel.CurrentFrame = currentFrame + 1;
-                    }
-                    break;
-            }
+            using var scope = (Application.Current as App).ServiceProvider.CreateScope();
+            var window = scope.ServiceProvider.GetService<AIWindow>();
+            window.Owner = this;
+            window.ShowInTaskbar = false;
+            window.ShowWithData(viewModel.SimState.AircraftTitle, viewModel.FileName, replayLogic.ToData(currentVersion));
         }
 
         private async void ButtonSave_Click(object sender, RoutedEventArgs e)
@@ -289,20 +180,24 @@ namespace FlightRecorder.Client
         {
             if (await stateMachine.TransitAsync(StateMachine.Event.Load))
             {
-                imageLogic.ClearCache();
+                drawingLogic.ClearCache();
                 Draw();
             }
+        }
+
+        private void ButtonLoadAI_Click(object sender, RoutedEventArgs e)
+        {
+            using var scope = (Application.Current as App).ServiceProvider.CreateScope();
+            var window = scope.ServiceProvider.GetService<AIWindow>();
+            window.Owner = this;
+            window.ShowInTaskbar = false;
+            window.ShowWithData(viewModel.SimState.AircraftTitle);
         }
 
         private void ButtonShowData_Click(object sender, RoutedEventArgs e)
         {
             viewModel.ShowData = !viewModel.ShowData;
-            Height = viewModel.ShowData ? 440 : 275;
-        }
-
-        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            Draw(false);
+            Height = viewModel.ShowData ? 472 : 307;
         }
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
@@ -343,7 +238,6 @@ namespace FlightRecorder.Client
                     try
                     {
                         connector.Initialize(Handle);
-                        await stateMachine.TransitAsync(StateMachine.Event.Connect);
                         break;
                     }
                     catch (BadImageFormatException)
@@ -362,84 +256,9 @@ namespace FlightRecorder.Client
             });
         }
 
-        private void Draw(bool throttle = true)
+        protected override void Draw()
         {
-            var width = (int)ImageWrapper.ActualWidth;
-            var height = (int)ImageWrapper.ActualHeight;
-            var currentFrame = viewModel.CurrentFrame;
-
-            Task.Run(() =>
-            {
-                if (throttle)
-                {
-                    drawingThrottleLogic.RunAsync(async () => Draw(width, height, currentFrame), 500);
-                }
-                else
-                {
-                    Draw(width, height, currentFrame);
-                }
-            });
-        }
-
-        private void Draw(int width, int height, int currentFrame)
-        {
-            try
-            {
-                var image = imageLogic.Draw(width, height, replayLogic.Records, currentFrame);
-
-                if (image != null)
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        try
-                        {
-                            var bmp = new WriteableBitmap(image.Width, image.Height, image.Metadata.HorizontalResolution, image.Metadata.VerticalResolution, PixelFormats.Bgra32, null);
-
-                            bmp.Lock();
-                            try
-                            {
-                                var backBuffer = bmp.BackBuffer;
-
-                                for (var y = 0; y < image.Height; y++)
-                                {
-                                    var buffer = image.GetPixelRowSpan(y);
-                                    for (var x = 0; x < image.Width; x++)
-                                    {
-                                        var backBufferPos = backBuffer + (y * image.Width + x) * 4;
-                                        var rgba = buffer[x];
-                                        var color = rgba.A << 24 | rgba.R << 16 | rgba.G << 8 | rgba.B;
-
-                                        Marshal.WriteInt32(backBufferPos, color);
-                                    }
-                                }
-
-                                bmp.AddDirtyRect(new Int32Rect(0, 0, image.Width, image.Height));
-                            }
-                            finally
-                            {
-                                bmp.Unlock();
-                                ImageChart.Source = bmp;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-#if DEBUG
-                            logger.LogError(ex, "Cannot convert to WriteableBitmap");
-#endif
-                        }
-                        finally
-                        {
-                            image.Dispose();
-                        }
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-#if DEBUG
-                logger.LogError(ex, "Cannot draw");
-#endif
-            }
+            drawingLogic.Draw(replayLogic.Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
         }
     }
 }

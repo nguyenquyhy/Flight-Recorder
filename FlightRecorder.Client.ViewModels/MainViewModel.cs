@@ -1,9 +1,12 @@
-﻿using System.ComponentModel;
+﻿using FlightRecorder.Client.Logics;
+using FlightRecorder.Client.SimConnectMSFS;
+using Microsoft.Extensions.Logging;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace FlightRecorder.Client
 {
-
     public class BaseViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
@@ -30,7 +33,51 @@ namespace FlightRecorder.Client
 
     public class MainViewModel : BaseViewModel
     {
-        public bool IsThrottlingChart => State == StateMachine.State.Recording || State == StateMachine.State.ReplayingSaved || State == StateMachine.State.ReplayingUnsaved;
+        private readonly IThreadLogic threadLogic;
+
+        public MainViewModel(ILogger<MainViewModel> logger, IThreadLogic threadLogic, IRecorderLogic recorderLogic, IReplayLogic replayLogic, IConnector connector)
+        {
+            logger.LogDebug("Creating instance of {class}", nameof(MainViewModel));
+            this.threadLogic = threadLogic;
+
+            recorderLogic.RecordsUpdated += RecordsUpdated;
+            replayLogic.RecordsUpdated += RecordsUpdated;
+            replayLogic.CurrentFrameChanged += CurrentFrameChanged;
+            connector.SimStateUpdated += SimStateUpdated;
+        }
+
+        private void RecordsUpdated(object sender, RecordsUpdatedEventArgs e)
+        {
+            threadLogic.RunInUIThread(() =>
+            {
+                FileName = e.FileName;
+                AircraftTitle = e.AircraftTitle;
+                FrameCount = e.RecordCount;
+            });
+        }
+
+        private void CurrentFrameChanged(object sender, CurrentFrameChangedEventArgs e)
+        {
+            try
+            {
+                threadLogic.RunInUIThread(() =>
+                {
+                    CurrentFrame = e.CurrentFrame;
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                // Exiting
+            }
+        }
+
+        private void SimStateUpdated(object sender, SimStateUpdatedEventArgs e)
+        {
+            threadLogic.RunInUIThread(() =>
+            {
+                SimState = SimState.FromStruct(e.State);
+            });
+        }
 
         private SimConnectState simConnectState;
         public SimConnectState SimConnectState { get => simConnectState; set => SetProperty(ref simConnectState, value); }
@@ -49,6 +96,12 @@ namespace FlightRecorder.Client
 
         private int currentFrame;
         public int CurrentFrame { get => currentFrame; set => SetProperty(ref currentFrame, value); }
+
+        private string replayAircraftTitle;
+        public string ReplayAircraftTitle { get => replayAircraftTitle; set => SetProperty(ref replayAircraftTitle, value); }
+
+        private string currentAircraftTitle;
+        public string CurrentAircraftTitle { get => currentAircraftTitle; set => SetProperty(ref currentAircraftTitle, value); }
 
         private string aircraftTitle;
         public string AircraftTitle { get => aircraftTitle; set => SetProperty(ref aircraftTitle, value); }

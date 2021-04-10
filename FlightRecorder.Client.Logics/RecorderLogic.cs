@@ -24,8 +24,9 @@ namespace FlightRecorder.Client.Logics
         private bool IsStarted => startMilliseconds.HasValue && records != null;
         private bool IsEnded => startMilliseconds.HasValue && endMilliseconds.HasValue;
 
-        public RecorderLogic(ILogger<RecorderLogic> logger, Connector connector)
+        public RecorderLogic(ILogger<RecorderLogic> logger, IConnector connector)
         {
+            logger.LogDebug("Creating instance of {class}", nameof(RecorderLogic));
             this.logger = logger;
 
             connector.SimStateUpdated += Connector_SimStateUpdated;

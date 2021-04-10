@@ -31,7 +31,7 @@ namespace FlightRecorder.Client
 
         #endregion
 
-        private ServiceProvider serviceProvider;
+        public ServiceProvider ServiceProvider { get; private set; }
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -53,17 +53,22 @@ namespace FlightRecorder.Client
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
 
-            serviceProvider = serviceCollection.BuildServiceProvider();
+            ServiceProvider = serviceCollection.BuildServiceProvider();
 
-            MainWindow = serviceProvider.GetRequiredService<MainWindow>();
-            MainWindow.Show();
+            using (var scope = ServiceProvider.CreateScope())
+            {
+                MainWindow = scope.ServiceProvider.GetRequiredService<MainWindow>();
+                MainWindow.Show();
+            }
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
             try
             {
-                var replayLogic = serviceProvider?.GetService<IReplayLogic>();
+                // This create a new instance of ReplayLogic, which is not desirable.
+                // However, it can still unfreeze the aircraft.
+                var replayLogic = ServiceProvider?.GetService<IReplayLogic>();
                 replayLogic?.Unfreeze();
             }
             catch
@@ -95,16 +100,22 @@ namespace FlightRecorder.Client
                 configure.AddSerilog();
             });
 
-            services.AddSingleton<StateMachine>();
-            services.AddSingleton<Connector>();
-            services.AddSingleton<IRecorderLogic, RecorderLogic>();
-            services.AddSingleton<IReplayLogic, ReplayLogic>();
-            services.AddSingleton<ImageLogic>();
+            services.AddSingleton<IThreadLogic, ThreadLogic>();
+            services.AddSingleton<IConnector, Connector>();
             services.AddSingleton<ExportLogic>();
             services.AddSingleton<IDialogLogic, DialogLogic>();
-            services.AddSingleton(typeof(MainViewModel));
+
+            services.AddScoped<Orchestrator>();
+            services.AddScoped<StateMachine>();
+            services.AddScoped<IRecorderLogic, RecorderLogic>();
+            services.AddScoped<IReplayLogic, ReplayLogic>();
+            services.AddScoped<MainViewModel>();
+            services.AddScoped<MainWindow>();
+            services.AddScoped<AIWindow>();
+
+            services.AddTransient<DrawingLogic>();
+            services.AddTransient<ImageLogic>();
             services.AddTransient<ThrottleLogic>();
-            services.AddTransient(typeof(MainWindow));
         }
     }
 }

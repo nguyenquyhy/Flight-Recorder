@@ -4,21 +4,28 @@ using System;
 
 namespace FlightRecorder.Client.SimConnectMSFS
 {
-    public partial class Connector
+    public partial class Connector : IConnector
     {
+        public bool IsInitialized { get; private set; }
+
         private SimConnect simconnect = null;
 
         public event EventHandler<SimStateUpdatedEventArgs> SimStateUpdated;
         public event EventHandler<AircraftPositionUpdatedEventArgs> AircraftPositionUpdated;
         public event EventHandler Initialized;
         public event EventHandler Frame;
+        public event EventHandler CreatingObjectFailed;
         public event EventHandler<ConnectorErrorEventArgs> Error;
         public event EventHandler Closed;
+        public event EventHandler<AircraftIdReceivedEventArgs> AircraftIdReceived;
 
         private readonly ILogger<Connector> logger;
 
+        private int requestCount = 0;
+
         public Connector(ILogger<Connector> logger)
         {
+            logger.LogDebug("Creating instance of {class}", nameof(Connector));
             this.logger = logger;
         }
 
@@ -42,6 +49,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
 
             //simconnect.SubscribeToSystemEvent(EVENTS.POSITION_CHANGED, "PositionChanged");
             simconnect.SubscribeToSystemEvent(EVENTS.FRAME, "Frame");
+            simconnect.OnRecvAssignedObjectId += Simconnect_OnRecvAssignedObjectId;
 
             simconnect.OnRecvSystemState += Simconnect_OnRecvSystemState;
 
@@ -50,30 +58,60 @@ namespace FlightRecorder.Client.SimConnectMSFS
             simconnect.MapClientEventToSimEvent(EVENTS.FREEZE_ATTITUDE, "FREEZE_ATTITUDE_SET");
             RegisterEvents();
 
+            IsInitialized = true;
             Initialized?.Invoke(this, new());
         }
 
-        public void Pause()
+        public void Freeze(uint aircraftId)
         {
-            logger.LogDebug("Pause");
-            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_LATITUDE_LONGITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ALTITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-            simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ATTITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            lock (lockObj)
+            {
+                logger.LogDebug("Freeze aircraft {id}", aircraftId);
+                simconnect.TransmitClientEvent(aircraftId, EVENTS.FREEZE_LATITUDE_LONGITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+                simconnect.TransmitClientEvent(aircraftId, EVENTS.FREEZE_ALTITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+                simconnect.TransmitClientEvent(aircraftId, EVENTS.FREEZE_ATTITUDE, 1, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            }
         }
 
-        public void Unpause()
+        public void Unfreeze(uint aircraftId)
         {
-            logger.LogDebug("Unpause");
-            simconnect?.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_LATITUDE_LONGITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-            simconnect?.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ALTITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-            simconnect?.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, EVENTS.FREEZE_ATTITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            lock (lockObj)
+            {
+                logger.LogDebug("Unfreeze aircraft {id}", aircraftId);
+                simconnect?.TransmitClientEvent(aircraftId, EVENTS.FREEZE_LATITUDE_LONGITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+                simconnect?.TransmitClientEvent(aircraftId, EVENTS.FREEZE_ALTITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+                simconnect?.TransmitClientEvent(aircraftId, EVENTS.FREEZE_ATTITUDE, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+            }
         }
 
-        public void Init(AircraftPositionStruct position)
+        public void Init(uint aircraftId, AircraftPositionStruct position)
         {
-            logger.LogDebug("Set initial position");
-            simconnect.SetDataOnSimObject(DEFINITIONS.AircraftPositionInitial, SimConnect.SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_DATA_SET_FLAG.DEFAULT,
-                new SIMCONNECT_DATA_INITPOSITION
+            lock (lockObj)
+            {
+                logger.LogDebug("Set initial position");
+                simconnect.SetDataOnSimObject(DEFINITIONS.AircraftPositionInitial, aircraftId, SIMCONNECT_DATA_SET_FLAG.DEFAULT,
+                    new SIMCONNECT_DATA_INITPOSITION
+                    {
+                        Latitude = position.Latitude,
+                        Longitude = position.Longitude,
+                        Altitude = position.Altitude,
+                        Pitch = position.Pitch,
+                        Bank = position.Bank,
+                        Heading = position.TrueHeading,
+                        OnGround = position.IsOnGround,
+                        Airspeed = 0
+                    });
+            }
+        }
+
+        public uint Spawn(string aircraftTitle, AircraftPositionStruct position)
+        {
+            var requestID = DATA_REQUESTS.AI_SPAWN + requestCount;
+            requestCount = (requestCount + 1) % 10000;
+            lock (lockObj)
+            {
+                logger.LogDebug("Spawing new aircraft. Request ID {requestId}.", (uint)requestID);
+                simconnect.AICreateNonATCAircraft(aircraftTitle, "REPLAY", new SIMCONNECT_DATA_INITPOSITION
                 {
                     Latitude = position.Latitude,
                     Longitude = position.Longitude,
@@ -83,12 +121,29 @@ namespace FlightRecorder.Client.SimConnectMSFS
                     Heading = position.TrueHeading,
                     OnGround = position.IsOnGround,
                     Airspeed = 0
-                });
+                }, requestID);
+            }
+            return (uint)requestID;
         }
 
-        public void Set(AircraftPositionSetStruct position)
+        public void Despawn(uint aircraftId)
         {
-            simconnect.SetDataOnSimObject(DEFINITIONS.AircraftPositionSet, 0, SIMCONNECT_DATA_SET_FLAG.DEFAULT, position);
+            lock (lockObj)
+            {
+                logger.LogDebug("Despawning object ID {id}.", aircraftId);
+                simconnect.AIRemoveObject(aircraftId, DATA_REQUESTS.AI_DESPAWN);
+            }
+        }
+
+        private static object lockObj = new();
+
+        public void Set(uint aircraftId, AircraftPositionSetStruct position)
+        {
+            lock (lockObj)
+            {
+                logger.LogTrace("Set Data on {id}", aircraftId);
+                simconnect.SetDataOnSimObject(DEFINITIONS.AircraftPositionSet, aircraftId, SIMCONNECT_DATA_SET_FLAG.DEFAULT, position);
+            }
         }
 
         private void ProcessSimState(SimStateStruct state)
@@ -116,6 +171,15 @@ namespace FlightRecorder.Client.SimConnectMSFS
                 SIMCONNECT_PERIOD.SIM_FRAME,
                 SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
                 0, 0, 0);
+        }
+
+        private void Simconnect_OnRecvAssignedObjectId(SimConnect sender, SIMCONNECT_RECV_ASSIGNED_OBJECT_ID data)
+        {
+            logger.LogDebug("An object ID {id} is received for request {requestId}.", data.dwObjectID, data.dwRequestID);
+
+            simconnect.AIReleaseControl(data.dwObjectID, DATA_REQUESTS.AI_RELEASE);
+            Freeze(data.dwObjectID);
+            AircraftIdReceived?.Invoke(this, new AircraftIdReceivedEventArgs(data.dwRequestID, data.dwObjectID));
         }
 
         #region Facility
@@ -183,7 +247,14 @@ namespace FlightRecorder.Client.SimConnectMSFS
             var error = (SIMCONNECT_EXCEPTION)data.dwException;
             logger.LogError("SimConnect error received: {error}", error);
 
-            Error?.Invoke(this, new ConnectorErrorEventArgs(error));
+            switch (error)
+            {
+                case SIMCONNECT_EXCEPTION.CREATE_OBJECT_FAILED:
+                    CreatingObjectFailed?.Invoke(this, new());
+                    break;
+            }
+
+            Error?.Invoke(this, new(error));
         }
 
         private void Simconnect_OnRecvSimobjectData(SimConnect sender, SIMCONNECT_RECV_SIMOBJECT_DATA data)
@@ -241,6 +312,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
         {
             try
             {
+                IsInitialized = false;
                 // Dispose serves the same purpose as SimConnect_Close()
                 simconnect?.Dispose();
                 simconnect = null;

@@ -14,5 +14,14 @@
         <converters:BooleanToStringConverter x:Key="BooleanToStringConverter" />
         <converters:BooleanOrConverter x:Key="AnyTrueToTrueConverter" />
         <converters:AdditionConverter x:Key="AdditionConverter" />
+        <converters:RecordedAsConverter x:Key="RecordedAsConverter" />
+        <converters:StringToBooleanConverter x:Key="StringToTrueConverter" />
+
+        <Style x:Key="SeparatorStyle" TargetType="Rectangle">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0,10" />
+            <Setter Property="Fill" Value="LightGray" />
+            <Setter Property="Height" Value="1" />
+        </Style>
     </Application.Resources>
 </Application>

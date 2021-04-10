@@ -1,0 +1,28 @@
+﻿<Window x:Class="FlightRecorder.Client.AircraftNameDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FlightRecorder.Client"
+        mc:Ignorable="d"
+        Title="Aircraft Title" Height="155" Width="350" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" Loaded="Window_Loaded">
+
+    <StackPanel Margin="10,0,10,0">
+        <TextBlock Text="Input the title of the aircraft" Margin="0,0,0,5" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="40" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TextName" TextChanged="TextName_TextChanged" />
+            <Button x:Name="ButtonSet" IsEnabled="False" Grid.Column="1" Click="ButtonSet_Click">Set</Button>
+        </Grid>
+        <Separator Margin="0,10" />
+        <Button x:Name="ButtonCurrent" ToolTip="{Binding CurrentAircraftTitle}" Margin="0,0,0,5"
+                IsEnabled="{Binding CurrentAircraftTitle, Converter={StaticResource StringToTrueConverter}}"
+                Click="ButtonCurrent_Click">Current aircraft</Button>
+        <Button x:Name="ButtonRecorded" ToolTip="{Binding AircraftTitle}" Margin="0,0,0,5"
+                IsEnabled="{Binding AircraftTitle, Converter={StaticResource StringToTrueConverter}}"
+                Click="ButtonRecorded_Click">Recorded aircraft</Button>
+    </StackPanel>
+</Window>

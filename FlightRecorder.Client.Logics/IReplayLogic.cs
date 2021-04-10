@@ -10,6 +10,7 @@ namespace FlightRecorder.Client.Logics
         event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
 
         List<(long milliseconds, AircraftPositionStruct position)> Records { get; }
+        string AircraftTitle { get; set; }
 
         bool Replay();
         bool PauseReplay();

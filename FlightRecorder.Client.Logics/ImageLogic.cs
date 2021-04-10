@@ -14,6 +14,8 @@ namespace FlightRecorder.Client.Logics
 
         public ImageLogic(ILogger<ImageLogic> logger)
         {
+            logger.LogDebug("Creating instance of {class}", nameof(ImageLogic));
+
             this.logger = logger;
         }
 

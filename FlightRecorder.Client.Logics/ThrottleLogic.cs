@@ -15,6 +15,8 @@ namespace FlightRecorder.Client.Logics
 
         public ThrottleLogic(ILogger<ThrottleLogic> logger)
         {
+            logger.LogDebug("Creating instance of {class}", nameof(ThrottleLogic));
+
             this.logger = logger;
             stopwatch.Start();
         }
