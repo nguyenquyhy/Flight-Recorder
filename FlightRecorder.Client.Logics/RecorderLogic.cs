@@ -49,6 +49,8 @@ namespace FlightRecorder.Client.Logics
         {
             this.logger = logger;
             this.connector = connector;
+
+            connector.Frame += Connector_Frame;
         }
 
         #region Public Functions
@@ -201,22 +203,6 @@ namespace FlightRecorder.Client.Logics
             this.rate = rate;
         }
 
-        public void Tick()
-        {
-            if (IsReplaying || IsPausing)
-            {
-                try
-                {
-                    tcs?.SetResult(true);
-                }
-                catch (InvalidOperationException ex)
-                {
-                    // Ignore since most likely tcs result is already set
-                    logger.LogDebug(ex, "Cannot set TCS result on tick");
-                }
-            }
-        }
-
         public void Unfreeze()
         {
             if (replayMilliseconds != null)
@@ -239,6 +225,11 @@ namespace FlightRecorder.Client.Logics
         #endregion
 
         #region Private Functions
+
+        private void Connector_Frame(object sender, EventArgs e)
+        {
+            Tick();
+        }
 
         private async Task RunReplay()
         {
@@ -366,6 +357,22 @@ namespace FlightRecorder.Client.Logics
             }
 
             connector.Set(nextValue);
+        }
+
+        private void Tick()
+        {
+            if (IsReplaying || IsPausing)
+            {
+                try
+                {
+                    tcs?.SetResult(true);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Ignore since most likely tcs result is already set
+                    logger.LogDebug(ex, "Cannot set TCS result on tick");
+                }
+            }
         }
 
         #endregion

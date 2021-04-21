@@ -21,7 +21,6 @@ namespace FlightRecorder.Client.Logics
         bool ResumeReplay();
         void Seek(int value);
         bool StopReplay();
-        void Tick();
         void ChangeRate(double rate);
         void Unfreeze();
 
