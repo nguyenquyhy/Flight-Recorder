@@ -16,10 +16,10 @@ namespace FlightRecorder.Client.ViewModels.Tests
 
             Assert.AreEqual(StateMachine.State.Start, viewModel.State);
 
-            var stateMachine = new StateMachine(new Mock<ILogger<StateMachine>>().Object, viewModel, new Mock<IRecorderLogic>().Object, new Mock<IDialogLogic>().Object);
+            var stateMachine = new StateMachine(new Mock<ILogger<StateMachine>>().Object, viewModel, new Mock<IRecorderLogic>().Object, new Mock<IReplayLogic>().Object, new Mock<IDialogLogic>().Object);
             await stateMachine.TransitAsync(StateMachine.Event.StartUp);
 
-            Assert.AreEqual(StateMachine.State.DisconnectedSaved, viewModel.State);
+            Assert.AreEqual(StateMachine.State.DisconnectedEmpty, viewModel.State);
         }
     }
 }

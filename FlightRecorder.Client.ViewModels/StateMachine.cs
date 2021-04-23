@@ -21,6 +21,7 @@ namespace FlightRecorder.Client
         private readonly ILogger<StateMachine> logger;
         private readonly MainViewModel viewModel;
         private readonly IRecorderLogic recorderLogic;
+        private readonly IReplayLogic replayLogic;
         private readonly IDialogLogic dialogLogic;
         public readonly string currentVersion;
 
@@ -65,11 +66,12 @@ namespace FlightRecorder.Client
             End
         }
 
-        public StateMachine(ILogger<StateMachine> logger, MainViewModel viewModel, IRecorderLogic recorderLogic, IDialogLogic dialogLogic)
+        public StateMachine(ILogger<StateMachine> logger, MainViewModel viewModel, IRecorderLogic recorderLogic, IReplayLogic replayLogic, IDialogLogic dialogLogic)
         {
             this.logger = logger;
             this.viewModel = viewModel;
             this.recorderLogic = recorderLogic;
+            this.replayLogic = replayLogic;
             this.dialogLogic = dialogLogic;
             this.currentVersion = System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString();
 
@@ -110,7 +112,7 @@ namespace FlightRecorder.Client
 
             Register(Transition.From(State.IdleSaved).To(State.DisconnectedSaved).By(Event.Disconnect).ThenUpdate(viewModel));
             Register(Transition.From(State.IdleSaved).To(State.Recording).By(Event.Record).Then(StartRecording).ThenUpdate(viewModel));
-            Register(Transition.From(State.IdleSaved).To(State.ReplayingSaved).By(Event.Replay).Then(recorderLogic.Replay).ThenUpdate(viewModel));
+            Register(Transition.From(State.IdleSaved).To(State.ReplayingSaved).By(Event.Replay).Then(replayLogic.Replay).ThenUpdate(viewModel));
             Register(Transition.From(State.IdleSaved).To(State.SavingIdle).By(Event.RequestSaving).ThenUpdate(viewModel));
             Register(Transition.From(State.IdleSaved).To(State.LoadingIdle).By(Event.RequestLoading).ThenUpdate(viewModel));
             Register(Transition.From(State.IdleSaved).To(State.End).By(Event.Exit));
@@ -120,7 +122,7 @@ namespace FlightRecorder.Client
             {
                 return dialogLogic.Confirm("You haven't saved the recording.\nStarting a new recording will remove current one.\nDo you want to proceed?");
             }).Then(StartRecording).ThenUpdate(viewModel));
-            Register(Transition.From(State.IdleUnsaved).To(State.ReplayingUnsaved).By(Event.Replay).Then(recorderLogic.Replay).ThenUpdate(viewModel));
+            Register(Transition.From(State.IdleUnsaved).To(State.ReplayingUnsaved).By(Event.Replay).Then(replayLogic.Replay).ThenUpdate(viewModel));
             Register(Transition.From(State.IdleUnsaved).To(State.SavingIdle).By(Event.RequestSaving).ThenUpdate(viewModel));
             Register(Transition.From(State.IdleUnsaved).To(State.LoadingIdle).By(Event.RequestLoading).Then(() =>
             {
@@ -147,22 +149,27 @@ namespace FlightRecorder.Client
             Register(Transition.From(State.LoadingDisconnected).To(State.LoadingDisconnected).By(Event.Disconnect)); // NO-OP
             Register(Transition.From(State.LoadingDisconnected).To(State.LoadingDisconnected).By(Event.Exit)); // NO-OP
 
-            Register(Transition.From(State.Recording).To(State.IdleUnsaved).By(Event.Stop).Then(() => { recorderLogic.StopRecording(); return true; }).ThenUpdate(viewModel));
+            Register(Transition.From(State.Recording).To(State.IdleUnsaved).By(Event.Stop).Then(() =>
+            {
+                recorderLogic.StopRecording();
+                replayLogic.FromData(recorderLogic.ToData(currentVersion));
+                return true;
+            }).ThenUpdate(viewModel));
 
             Register(Transition.From(State.ReplayingSaved).To(State.ReplayingSaved).By(Event.RequestStopping).Then(RequestStopping));
-            Register(Transition.From(State.ReplayingSaved).To(State.PausingSaved).By(Event.Pause).Then(() => recorderLogic.PauseReplay()).ThenUpdate(viewModel));
+            Register(Transition.From(State.ReplayingSaved).To(State.PausingSaved).By(Event.Pause).Then(() => replayLogic.PauseReplay()).ThenUpdate(viewModel));
             Register(Transition.From(State.ReplayingSaved).To(State.IdleSaved).By(Event.Stop).Then(StopReplay).ThenUpdate(viewModel));
 
             Register(Transition.From(State.ReplayingUnsaved).To(State.ReplayingUnsaved).By(Event.RequestStopping).Then(RequestStopping));
-            Register(Transition.From(State.ReplayingUnsaved).To(State.PausingUnsaved).By(Event.Pause).Then(() => recorderLogic.PauseReplay()).ThenUpdate(viewModel));
+            Register(Transition.From(State.ReplayingUnsaved).To(State.PausingUnsaved).By(Event.Pause).Then(() => replayLogic.PauseReplay()).ThenUpdate(viewModel));
             Register(Transition.From(State.ReplayingUnsaved).To(State.IdleUnsaved).By(Event.Stop).Then(StopReplay).ThenUpdate(viewModel));
 
             Register(Transition.From(State.PausingSaved).To(State.PausingSaved).By(Event.RequestStopping).Then(RequestStopping));
-            Register(Transition.From(State.PausingSaved).To(State.ReplayingSaved).By(Event.Resume).Then(() => recorderLogic.ResumeReplay()).ThenUpdate(viewModel));
+            Register(Transition.From(State.PausingSaved).To(State.ReplayingSaved).By(Event.Resume).Then(() => replayLogic.ResumeReplay()).ThenUpdate(viewModel));
             Register(Transition.From(State.PausingSaved).To(State.IdleSaved).By(Event.Stop).Then(StopReplay).ThenUpdate(viewModel));
 
             Register(Transition.From(State.PausingUnsaved).To(State.PausingUnsaved).By(Event.RequestStopping).Then(RequestStopping));
-            Register(Transition.From(State.PausingUnsaved).To(State.ReplayingUnsaved).By(Event.Resume).Then(() => recorderLogic.ResumeReplay()).ThenUpdate(viewModel));
+            Register(Transition.From(State.PausingUnsaved).To(State.ReplayingUnsaved).By(Event.Resume).Then(() => replayLogic.ResumeReplay()).ThenUpdate(viewModel));
             Register(Transition.From(State.PausingUnsaved).To(State.IdleUnsaved).By(Event.Stop).Then(StopReplay).ThenUpdate(viewModel));
 
 
@@ -205,14 +212,15 @@ namespace FlightRecorder.Client
             viewModel.CurrentFrame = 0;
             return true;
         }
-        private Task<bool> SaveRecordingAsync() => dialogLogic.SaveAsync(recorderLogic.ToData(currentVersion));
+
+        private Task<bool> SaveRecordingAsync() => dialogLogic.SaveAsync(replayLogic.ToData(currentVersion));
 
         private async Task<bool> LoadRecordingAsync()
         {
             var data = await dialogLogic.LoadAsync();
             if (data != null)
             {
-                recorderLogic.FromData(data);
+                replayLogic.FromData(data);
                 return true;
             }
             return false;
@@ -220,7 +228,7 @@ namespace FlightRecorder.Client
 
         private bool RequestStopping()
         {
-            recorderLogic.StopReplay();
+            replayLogic.StopReplay();
             return true;
         }
 

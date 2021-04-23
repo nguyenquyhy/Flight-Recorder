@@ -63,8 +63,8 @@ namespace FlightRecorder.Client
         {
             try
             {
-                var recorderLogic = serviceProvider?.GetService<IRecorderLogic>();
-                recorderLogic?.Unfreeze();
+                var replayLogic = serviceProvider?.GetService<IReplayLogic>();
+                replayLogic?.Unfreeze();
             }
             catch
             {
@@ -98,6 +98,7 @@ namespace FlightRecorder.Client
             services.AddSingleton<StateMachine>();
             services.AddSingleton<Connector>();
             services.AddSingleton<IRecorderLogic, RecorderLogic>();
+            services.AddSingleton<IReplayLogic, ReplayLogic>();
             services.AddSingleton<ImageLogic>();
             services.AddSingleton<ExportLogic>();
             services.AddSingleton<IDialogLogic, DialogLogic>();

@@ -26,6 +26,7 @@ namespace FlightRecorder.Client
         private readonly MainViewModel viewModel;
         private readonly Connector connector;
         private readonly IRecorderLogic recorderLogic;
+        private readonly IReplayLogic replayLogic;
         private readonly ImageLogic imageLogic;
         private readonly ExportLogic exportLogic;
         private readonly ThrottleLogic drawingThrottleLogic;
@@ -34,7 +35,9 @@ namespace FlightRecorder.Client
 
         private IntPtr Handle;
 
-        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector, IRecorderLogic recorderLogic, ImageLogic imageLogic, ExportLogic exportLogic, ThrottleLogic drawingThrottleLogic, StateMachine stateMachine)
+        public MainWindow(ILogger<MainWindow> logger, MainViewModel viewModel, Connector connector,
+            IRecorderLogic recorderLogic, IReplayLogic replayLogic,
+            ImageLogic imageLogic, ExportLogic exportLogic, ThrottleLogic drawingThrottleLogic, StateMachine stateMachine)
         {
             InitializeComponent();
 
@@ -43,6 +46,7 @@ namespace FlightRecorder.Client
             this.viewModel = viewModel;
             this.connector = connector;
             this.recorderLogic = recorderLogic;
+            this.replayLogic = replayLogic;
             this.imageLogic = imageLogic;
             this.exportLogic = exportLogic;
             this.drawingThrottleLogic = drawingThrottleLogic;
@@ -56,8 +60,9 @@ namespace FlightRecorder.Client
             DataContext = viewModel;
 
             recorderLogic.RecordsUpdated += RecorderLogic_RecordsUpdated;
-            recorderLogic.CurrentFrameChanged += RecorderLogic_CurrentFrameChanged;
-            recorderLogic.ReplayFinished += RecorderLogic_ReplayFinished;
+            replayLogic.RecordsUpdated += ReplayLogic_RecordsUpdated;
+            replayLogic.CurrentFrameChanged += ReplayLogic_CurrentFrameChanged;
+            replayLogic.ReplayFinished += ReplayLogic_ReplayFinished;
 
             currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
             Title += " " + currentVersion;
@@ -71,15 +76,23 @@ namespace FlightRecorder.Client
             }
         }
 
-        private void RecorderLogic_RecordsUpdated(object sender, EventArgs e)
+        private void RecorderLogic_RecordsUpdated(object sender, RecordsUpdatedEventArgs e)
         {
             Dispatcher.Invoke(() =>
             {
-                viewModel.FrameCount = recorderLogic.Records?.Count ?? 0;
+                viewModel.FrameCount = e.Count;
             });
         }
 
-        private void RecorderLogic_CurrentFrameChanged(object sender, CurrentFrameChangedEventArgs e)
+        private void ReplayLogic_RecordsUpdated(object sender, RecordsUpdatedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                viewModel.FrameCount = e.Count;
+            });
+        }
+
+        private void ReplayLogic_CurrentFrameChanged(object sender, CurrentFrameChangedEventArgs e)
         {
             try
             {
@@ -94,7 +107,7 @@ namespace FlightRecorder.Client
             }
         }
 
-        private void RecorderLogic_ReplayFinished(object sender, EventArgs e)
+        private void ReplayLogic_ReplayFinished(object sender, EventArgs e)
         {
             imageLogic.ClearCache();
 
@@ -148,6 +161,7 @@ namespace FlightRecorder.Client
         private void Connector_AircraftPositionUpdated(object sender, AircraftPositionUpdatedEventArgs e)
         {
             recorderLogic.NotifyPosition(e.Position);
+            replayLogic.NotifyPosition(e.Position);
 
             Dispatcher.Invoke(() =>
             {
@@ -200,7 +214,7 @@ namespace FlightRecorder.Client
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            recorderLogic.Seek((int)e.NewValue);
+            replayLogic.Seek((int)e.NewValue);
             Draw(viewModel.IsThrottlingChart);
         }
 
@@ -231,12 +245,6 @@ namespace FlightRecorder.Client
 
         private async void ButtonExport_Click(object sender, RoutedEventArgs e)
         {
-            if (!recorderLogic.CanSave)
-            {
-                MessageBox.Show("Nothing to export!");
-                return;
-            }
-
             var dialog = new SaveFileDialog
             {
                 FileName = $"Export {DateTime.Now:yyyy-MM-dd-HH-mm}.csv",
@@ -246,7 +254,7 @@ namespace FlightRecorder.Client
             {
                 try
                 {
-                    await exportLogic.ExportAsync(dialog.FileName, recorderLogic.Records.Select(o =>
+                    await exportLogic.ExportAsync(dialog.FileName, replayLogic.Records.Select(o =>
                     {
                         var result = AircraftPosition.FromStruct(o.position);
                         result.Milliseconds = o.milliseconds;
@@ -287,7 +295,7 @@ namespace FlightRecorder.Client
             if ((sender as MenuItem).Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
             {
                 ButtonSpeed.Content = header;
-                recorderLogic.ChangeRate(rate);
+                replayLogic.ChangeRate(rate);
             }
         }
 
@@ -362,7 +370,7 @@ namespace FlightRecorder.Client
         {
             try
             {
-                var image = imageLogic.Draw(width, height, recorderLogic.Records, currentFrame);
+                var image = imageLogic.Draw(width, height, replayLogic.Records, currentFrame);
 
                 if (image != null)
                 {
