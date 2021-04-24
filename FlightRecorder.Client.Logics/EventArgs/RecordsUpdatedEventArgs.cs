@@ -4,11 +4,15 @@ namespace FlightRecorder.Client.Logics
 {
     public class RecordsUpdatedEventArgs : EventArgs
     {
-        public int Count { get; }
+        public string FileName { get; }
+        public string AircraftTitle { get; }
+        public int RecordCount { get; }
 
-        public RecordsUpdatedEventArgs(int count)
+        public RecordsUpdatedEventArgs(string fileName, string aircraftTitle, int recordCount)
         {
-            Count = count;
+            FileName = fileName;
+            AircraftTitle = aircraftTitle;
+            RecordCount = recordCount;
         }
     }
 }

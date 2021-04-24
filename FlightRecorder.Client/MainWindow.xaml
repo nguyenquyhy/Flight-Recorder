@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FlightRecorder.Client"
         mc:Ignorable="d"
-        Title="Flight Recorder" Height="275" d:Height="500" Width="450" SizeChanged="Window_SizeChanged" Closing="Window_Closing">
+        Title="Flight Recorder" Height="275" d:Height="500" Width="450" MinWidth="450" SizeChanged="Window_SizeChanged" Closing="Window_Closing">
     <Window.Resources>
         <Style x:Key="SeparatorStyle" TargetType="Rectangle">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -17,10 +17,10 @@
 
     <Grid Margin="5">
         <StackPanel>
-            <Grid Visibility="{Binding State, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=DisconnectedEmpty|DisconnectedSaved|DisconnectedUnsaved}">
+            <Grid Visibility="{Binding State, Converter={StaticResource ValueToVisibleConverter}, ConverterParameter=DisconnectedEmpty|DisconnectedSaved|DisconnectedUnsaved|LoadingDisconnected|SavingDisconnected}">
                 <TextBlock Text="Cannot connect to SimConnect! Please start Microsoft Flight Simulator." HorizontalAlignment="Center" />
             </Grid>
-            <Grid Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=DisconnectedEmpty|DisconnectedSaved|DisconnectedUnsaved}">
+            <Grid Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=DisconnectedEmpty|DisconnectedSaved|DisconnectedUnsaved|LoadingDisconnected|SavingDisconnected}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
                     <ColumnDefinition />
@@ -161,11 +161,19 @@
                 </Button>
             </Grid>
 
-            <Grid>
-                <Button Content="{Binding ShowData, Converter={StaticResource BooleanToStringConverter}, ConverterParameter='Hide Data|Show Data'}" d:Content="Hide Data" Width="80" Margin="0,10,0,0" HorizontalAlignment="Left" Click="ButtonShowData_Click" />
+            <Grid Margin="0,10,0,0">
+                <TextBlock Text="{Binding AircraftTitle}" ToolTip="{Binding FileName}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=LoadingDisconnected|LoadingIdle}" />
+                <Button Content="{Binding ShowData, Converter={StaticResource BooleanToStringConverter}, ConverterParameter='Hide Data|Show Data'}" d:Content="Hide Data" Width="80" HorizontalAlignment="Left" Click="ButtonShowData_Click" />
                 <ToggleButton Content="Stay on top" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="80" Checked="ToggleButtonTopmost_Checked" Unchecked="ToggleButtonTopmost_Unchecked" />
             </Grid>
-            <Grid Visibility="{Binding ShowData, Converter={StaticResource TrueToVisibleConverter}}">
+            <Grid Visibility="{Binding ShowData, Converter={StaticResource TrueToVisibleConverter}}" Margin="0,5,0,0">
+                <Grid.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    </Style>
+                </Grid.Resources>
+
                 <Grid DataContext="{Binding AircraftPosition}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="100" />
@@ -206,6 +214,43 @@
                     <TextBlock Text="{Binding IsOnGround}" Grid.Row="8" Grid.Column="1" />
                     <TextBlock Text="Landing Rate" Grid.Row="9" Grid.Column="0" />
                     <TextBlock Text="{Binding TouchdownNormalVelocity}" Grid.Row="9" Grid.Column="1" />
+                </Grid>
+
+                <!-- Right -->
+                <Grid DataContext="{Binding SimState}" HorizontalAlignment="Right">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="100" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Title" Grid.Row="0" Grid.Column="0" />
+                    <TextBlock Text="{Binding AircraftTitle}" ToolTip="{Binding AircraftTitle}" Grid.Row="0" Grid.Column="1" />
+                    <TextBlock Text="Airline" Grid.Row="1" Grid.Column="0" />
+                    <TextBlock Text="{Binding AircraftAirline}" Grid.Row="1" Grid.Column="1" />
+                    <TextBlock Text="Number" Grid.Row="2" Grid.Column="0" />
+                    <TextBlock Text="{Binding AircraftNumber}" Grid.Row="2" Grid.Column="1" />
+                    <TextBlock Text="Id" Grid.Row="3" Grid.Column="0" />
+                    <TextBlock Text="{Binding AircraftId}" Grid.Row="3" Grid.Column="1" />
+                    <TextBlock Text="Model" Grid.Row="4" Grid.Column="0" />
+                    <TextBlock Text="{Binding AircraftModel}" ToolTip="{Binding AircraftModel}" Grid.Row="4" Grid.Column="1" />
+                    <TextBlock Text="Type" Grid.Row="5" Grid.Column="0" />
+                    <TextBlock Text="{Binding AircraftType}" ToolTip="{Binding AircraftType}" Grid.Row="5" Grid.Column="1" />
+                    <TextBlock Text="In Parking" Grid.Row="6" Grid.Column="0" />
+                    <TextBlock Text="{Binding AircraftOnParkingSpot}" Grid.Row="6" Grid.Column="1" />
+                    <TextBlock Text="In Menu" Grid.Row="7" Grid.Column="0" />
+                    <TextBlock Text="{Binding PlaneInParkingState}" Grid.Row="7" Grid.Column="1" />
                 </Grid>
             </Grid>
         </StackPanel>

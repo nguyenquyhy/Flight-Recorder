@@ -6,8 +6,6 @@ namespace FlightRecorder.Client
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
     public struct AircraftPositionStruct
     {
-        //public int SimRate;
-
         [SimConnectVariable(Name = "PLANE LATITUDE", Unit = "Degrees", Type = SIMCONNECT_DATATYPE.FLOAT64)]
         public double Latitude;
         [SimConnectVariable(Name = "PLANE LONGITUDE", Unit = "Degrees", Type = SIMCONNECT_DATATYPE.FLOAT64)]
@@ -131,6 +129,64 @@ namespace FlightRecorder.Client
         public double WingFlexPercent3;
         [SimConnectVariable(Name = "WING FLEX PCT:4", Unit = "Percent over 100", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
         public double WingFlexPercent4;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
+    public struct SimStateStruct
+    {
+        /// <summary>
+        /// Title from aircraft.cfg
+        /// </summary>
+        [SimConnectVariable(Name = "PLANE IN PARKING STATE", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32)]
+        public uint PlaneInParkingState;
+
+        /// <summary>
+        /// Title from aircraft.cfg
+        /// </summary>
+        [SimConnectVariable(Name = "TITLE", Type = SIMCONNECT_DATATYPE.STRING256)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string AircraftTitle;
+
+        /// <summary>
+        /// Airline used by ATC
+        /// </summary>
+        [SimConnectVariable(Name = "ATC AIRLINE", Type = SIMCONNECT_DATATYPE.STRING64)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+        public string AircraftAirline;
+
+        /// <summary>
+        /// Flight Number used by ATC
+        /// </summary>
+        [SimConnectVariable(Name = "ATC FLIGHT NUMBER", Type = SIMCONNECT_DATATYPE.STRING32)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string AircraftNumber;
+
+        /// <summary>
+        /// ID used by ATC
+        /// </summary>
+        [SimConnectVariable(Name = "ATC ID", Type = SIMCONNECT_DATATYPE.STRING32)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string AircraftId;
+
+        /// <summary>
+        /// Model used by ATC
+        /// </summary>
+        [SimConnectVariable(Name = "ATC MODEL", Type = SIMCONNECT_DATATYPE.STRING32)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string AircraftModel;
+
+        /// <summary>
+        /// Type used by ATC
+        /// </summary>
+        [SimConnectVariable(Name = "ATC TYPE", Type = SIMCONNECT_DATATYPE.STRING32)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string AircraftType;
+
+        /// <summary>
+        /// Is ATC aircraft on parking spot
+        /// </summary>
+        [SimConnectVariable(Name = "ATC ON PARKING SPOT", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32)]
+        public uint AircraftOnParkingSpot;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]

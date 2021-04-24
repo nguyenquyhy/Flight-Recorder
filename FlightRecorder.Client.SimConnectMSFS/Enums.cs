@@ -15,6 +15,7 @@
 
     enum DEFINITIONS
     {
+        SimState,
         AircraftPositionInitial,
         AircraftPosition,
         AircraftPositionSet,
@@ -22,6 +23,7 @@
 
     internal enum DATA_REQUESTS
     {
+        SIM_STATE,
         AIRCRAFT_POSITION,
     }
 }

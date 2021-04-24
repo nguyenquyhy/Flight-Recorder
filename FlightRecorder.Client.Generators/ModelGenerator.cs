@@ -21,7 +21,8 @@ namespace FlightRecorder.Client.Generators
 
         public void Execute(GeneratorExecutionContext context)
         {
-            var fields = GetAircraftFields(context).ToList();
+            var simStateFields = GetSimConnectFields(context, SimState).ToList();
+            var aircraftFields = GetSimConnectFields(context, AircraftPosition).ToList();
 
             var builder = new StringBuilder();
             builder.Append(@"
@@ -30,6 +31,44 @@ using FlightRecorder.Client;
 
 namespace FlightRecorder.Client
 {
+    public partial class SimState
+    {");
+
+            builder.Append(@"
+        public static SimState FromStruct(SimStateStruct s)
+            => new SimState
+            {");
+            foreach ((_, var name, _, _, _, _, _, _, _) in simStateFields)
+            {
+                builder.Append($@"
+                {name} = s.{name},");
+            }
+            builder.Append(@"
+            };
+");
+
+            builder.Append(@"
+        public static SimStateStruct ToStruct(SimState s)
+            => new SimStateStruct
+            {");
+            foreach ((_, var name, _, _, _, _, _, _, _) in simStateFields)
+            {
+                builder.Append($@"
+                {name} = s.{name},");
+            }
+            builder.Append(@"
+            };
+");
+
+            foreach ((var type, var name, _, _, _, _, _, _, _) in simStateFields)
+            {
+                builder.Append($@"
+        public {type} {name} {{ get; set; }}");
+            }
+
+            builder.Append(@"
+    }
+
     public partial class AircraftPosition
     {");
 
@@ -37,7 +76,7 @@ namespace FlightRecorder.Client
         public static AircraftPosition FromStruct(AircraftPositionStruct s)
             => new AircraftPosition
             {");
-            foreach ((_, var name, _, _, _, _, _, _, _) in fields)
+            foreach ((_, var name, _, _, _, _, _, _, _) in aircraftFields)
             {
                 builder.Append($@"
                 {name} = s.{name},");
@@ -50,7 +89,7 @@ namespace FlightRecorder.Client
         public static AircraftPositionStruct ToStruct(AircraftPosition s)
             => new AircraftPositionStruct
             {");
-            foreach ((_, var name, _, _, _, _, _, _, _) in fields)
+            foreach ((_, var name, _, _, _, _, _, _, _) in aircraftFields)
             {
                 builder.Append($@"
                 {name} = s.{name},");
@@ -62,7 +101,7 @@ namespace FlightRecorder.Client
             builder.Append(@"
         public long Milliseconds { get; set; }");
 
-            foreach ((var type, var name, _, _, _, _, _, _, _) in fields)
+            foreach ((var type, var name, _, _, _, _, _, _, _) in aircraftFields)
             {
                 builder.Append($@"
         public {type} {name} {{ get; set; }}");

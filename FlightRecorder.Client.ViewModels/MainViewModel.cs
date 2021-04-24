@@ -35,6 +35,9 @@ namespace FlightRecorder.Client
         private SimConnectState simConnectState;
         public SimConnectState SimConnectState { get => simConnectState; set => SetProperty(ref simConnectState, value); }
 
+        private SimState simState;
+        public SimState SimState { get => simState; set => SetProperty(ref simState, value); }
+
         private AircraftPosition aircraftPosition;
         public AircraftPosition AircraftPosition { get => aircraftPosition; set => SetProperty(ref aircraftPosition, value); }
 
@@ -46,6 +49,12 @@ namespace FlightRecorder.Client
 
         private int currentFrame;
         public int CurrentFrame { get => currentFrame; set => SetProperty(ref currentFrame, value); }
+
+        private string aircraftTitle;
+        public string AircraftTitle { get => aircraftTitle; set => SetProperty(ref aircraftTitle, value); }
+
+        private string fileName;
+        public string FileName { get => fileName; set => SetProperty(ref fileName, value); }
 
         private bool showData;
         public bool ShowData { get => showData; set => SetProperty(ref showData, value); }

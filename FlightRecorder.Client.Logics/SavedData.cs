@@ -10,11 +10,12 @@ namespace FlightRecorder.Client.Logics
 
         }
 
-        public SavedData(string clientVersion, long startTime, long endTime, List<(long milliseconds, AircraftPositionStruct position)> records)
+        public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, List<(long milliseconds, AircraftPositionStruct position)> records)
         {
             ClientVersion = clientVersion;
             StartTime = startTime;
             EndTime = endTime;
+            StartState = simState.HasValue ? SimState.FromStruct(simState.Value) : null;
             Records = records.Select(r => new SavedRecord
             {
                 Time = r.milliseconds,
@@ -25,6 +26,7 @@ namespace FlightRecorder.Client.Logics
         public string ClientVersion { get; set; }
         public long StartTime { get; set; }
         public long EndTime { get; set; }
+        public SimState StartState { get; set; }
         public List<SavedRecord> Records { get; set; }
 
         public class SavedRecord

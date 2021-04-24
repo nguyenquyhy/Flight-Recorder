@@ -23,6 +23,7 @@ namespace FlightRecorder.Client.Logics
 
         private long? startMilliseconds;
         private long? endMilliseconds;
+        private SimStateStruct? startState;
 
         public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; } = new();
 
@@ -183,16 +184,17 @@ namespace FlightRecorder.Client.Logics
             currentPosition = value;
         }
 
-        public void FromData(SavedData data)
+        public void FromData(string fileName, SavedData data)
         {
             startMilliseconds = data.StartTime;
             endMilliseconds = data.EndTime;
+            startState = data.StartState == null ? null : SimState.ToStruct(data.StartState);
             Records = data.Records.Select(r => (r.Time, AircraftPosition.ToStruct(r.Position))).ToList();
-            RecordsUpdated?.Invoke(this, new(Records.Count));
+            RecordsUpdated?.Invoke(this, new(fileName, data.StartState?.AircraftTitle, Records.Count));
         }
 
         public SavedData ToData(string clientVersion)
-            => new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, Records);
+            => new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, Records);
 
         #endregion
 

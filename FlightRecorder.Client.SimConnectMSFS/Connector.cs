@@ -8,6 +8,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
     {
         private SimConnect simconnect = null;
 
+        public event EventHandler<SimStateUpdatedEventArgs> SimStateUpdated;
         public event EventHandler<AircraftPositionUpdatedEventArgs> AircraftPositionUpdated;
         public event EventHandler Initialized;
         public event EventHandler Frame;
@@ -32,6 +33,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
             simconnect.OnRecvException += Simconnect_OnRecvException;
             simconnect.OnRecvEvent += Simconnect_OnRecvEvent;
             simconnect.OnRecvSimobjectData += Simconnect_OnRecvSimobjectData;
+            RegisterSimStateDefinition();
             RegisterAircraftPositionDefinition();
             RegisterAircraftPositionSetDefinition();
             simconnect.AddToDataDefinition(DEFINITIONS.AircraftPositionInitial, "Initial Position", null, SIMCONNECT_DATATYPE.INITPOSITION, 0.0f, SimConnect.SIMCONNECT_UNUSED);
@@ -89,6 +91,12 @@ namespace FlightRecorder.Client.SimConnectMSFS
             simconnect.SetDataOnSimObject(DEFINITIONS.AircraftPositionSet, 0, SIMCONNECT_DATA_SET_FLAG.DEFAULT, position);
         }
 
+        private void ProcessSimState(SimStateStruct state)
+        {
+            logger.LogTrace("Get SimState");
+            SimStateUpdated?.Invoke(this, new SimStateUpdatedEventArgs(state));
+        }
+
         private void ProcessAircraftPosition(AircraftPositionStruct position)
         {
             logger.LogTrace("Get Aircraft status");
@@ -97,6 +105,12 @@ namespace FlightRecorder.Client.SimConnectMSFS
 
         private void RequestDataOnConnected()
         {
+            simconnect.RequestDataOnSimObject(
+                DATA_REQUESTS.SIM_STATE, DEFINITIONS.SimState, 0,
+                SIMCONNECT_PERIOD.SECOND,
+                SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
+                0, 0, 0);
+
             simconnect.RequestDataOnSimObject(
                 DATA_REQUESTS.AIRCRAFT_POSITION, DEFINITIONS.AircraftPosition, 0,
                 SIMCONNECT_PERIOD.SIM_FRAME,
@@ -177,6 +191,15 @@ namespace FlightRecorder.Client.SimConnectMSFS
             // Must be general SimObject information
             switch (data.dwRequestID)
             {
+                case (uint)DATA_REQUESTS.SIM_STATE:
+                    {
+                        var state = data.dwData[0] as SimStateStruct?;
+                        if (state.HasValue)
+                        {
+                            ProcessSimState(state.Value);
+                        }
+                    }
+                    break;
                 case (uint)DATA_REQUESTS.AIRCRAFT_POSITION:
                     {
                         var position = data.dwData[0] as AircraftPositionStruct?;

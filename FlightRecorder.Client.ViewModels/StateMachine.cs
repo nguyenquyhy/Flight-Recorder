@@ -152,7 +152,7 @@ namespace FlightRecorder.Client
             Register(Transition.From(State.Recording).To(State.IdleUnsaved).By(Event.Stop).Then(() =>
             {
                 recorderLogic.StopRecording();
-                replayLogic.FromData(recorderLogic.ToData(currentVersion));
+                replayLogic.FromData(null, recorderLogic.ToData(currentVersion));
                 return true;
             }).ThenUpdate(viewModel));
 
@@ -213,14 +213,24 @@ namespace FlightRecorder.Client
             return true;
         }
 
-        private Task<bool> SaveRecordingAsync() => dialogLogic.SaveAsync(replayLogic.ToData(currentVersion));
+        private async Task<bool> SaveRecordingAsync()
+        {
+            var data = replayLogic.ToData(currentVersion);
+            var fileName = await dialogLogic.SaveAsync(data);
+            if (!string.IsNullOrEmpty(fileName))
+            {
+                replayLogic.FromData(fileName, data);
+                return true;
+            }
+            return false;
+        }
 
         private async Task<bool> LoadRecordingAsync()
         {
-            var data = await dialogLogic.LoadAsync();
+            var (fileName, data) = await dialogLogic.LoadAsync();
             if (data != null)
             {
-                replayLogic.FromData(data);
+                replayLogic.FromData(fileName, data);
                 return true;
             }
             return false;

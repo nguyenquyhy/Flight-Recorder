@@ -54,6 +54,7 @@ namespace FlightRecorder.Client
 
             stateMachine.StateChanged += StateMachine_StateChanged;
 
+            connector.SimStateUpdated += Connector_SimStateUpdated;
             connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
             connector.Closed += Connector_Closed;
 
@@ -80,7 +81,9 @@ namespace FlightRecorder.Client
         {
             Dispatcher.Invoke(() =>
             {
-                viewModel.FrameCount = e.Count;
+                viewModel.FileName = e.FileName;
+                viewModel.AircraftTitle = e.AircraftTitle;
+                viewModel.FrameCount = e.RecordCount;
             });
         }
 
@@ -88,7 +91,9 @@ namespace FlightRecorder.Client
         {
             Dispatcher.Invoke(() =>
             {
-                viewModel.FrameCount = e.Count;
+                viewModel.FileName = e.FileName;
+                viewModel.AircraftTitle = e.AircraftTitle;
+                viewModel.FrameCount = e.RecordCount;
             });
         }
 
@@ -156,6 +161,14 @@ namespace FlightRecorder.Client
             {
                 return IntPtr.Zero;
             }
+        }
+
+        private void Connector_SimStateUpdated(object sender, SimStateUpdatedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                viewModel.SimState = SimState.FromStruct(e.State);
+            });
         }
 
         private void Connector_AircraftPositionUpdated(object sender, AircraftPositionUpdatedEventArgs e)
