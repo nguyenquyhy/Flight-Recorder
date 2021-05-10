@@ -137,7 +137,9 @@ namespace FlightRecorder.Client
 
         private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (stateMachine.CurrentState != StateMachine.State.End)
+            if (stateMachine.CurrentState != StateMachine.State.End // Already exiting
+                && stateMachine.CurrentState != StateMachine.State.Start // Most likely due to single instance enforcement
+                )
             {
                 e.Cancel = true;
                 if (await stateMachine.TransitAsync(StateMachine.Event.Exit))
