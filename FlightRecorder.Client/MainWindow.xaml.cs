@@ -191,7 +191,7 @@ namespace FlightRecorder.Client
             var window = scope.ServiceProvider.GetService<AIWindow>();
             window.Owner = this;
             window.ShowInTaskbar = false;
-            window.ShowWithData(viewModel.SimState.AircraftTitle);
+            window.ShowWithData(viewModel.SimState?.AircraftTitle);
         }
 
         private void ButtonShowData_Click(object sender, RoutedEventArgs e)
