@@ -104,7 +104,7 @@
                 <Grid Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left">
                     <TextBlock Text="{Binding ReplayAircraftTitle}" TextTrimming="CharacterEllipsis" Margin="0,0,55,0" />
                     <Button Content="Change" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" FontSize="10" Margin="5,-1,0,-2" Width="50" Click="ButtonChange_Click"
-                            IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=IdleSaved|IdleUnsaved}" />
+                            IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=DisconnectedSaved|DisconnectedUnsaved|IdleSaved|IdleUnsaved}" />
                 </Grid>
             </Grid>
 
