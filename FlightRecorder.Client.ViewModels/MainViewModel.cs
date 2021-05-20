@@ -1,6 +1,7 @@
 ﻿using FlightRecorder.Client.Logics;
 using FlightRecorder.Client.SimConnectMSFS;
 using Microsoft.Extensions.Logging;
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -31,19 +32,56 @@ namespace FlightRecorder.Client
         Failed
     }
 
-    public class MainViewModel : BaseViewModel
+    public class MainViewModel : BaseViewModel, IDisposable
     {
+        private readonly ILogger<MainViewModel> logger;
         private readonly IThreadLogic threadLogic;
+        private readonly IRecorderLogic recorderLogic;
+        private readonly IReplayLogic replayLogic;
+        private readonly IConnector connector;
 
         public MainViewModel(ILogger<MainViewModel> logger, IThreadLogic threadLogic, IRecorderLogic recorderLogic, IReplayLogic replayLogic, IConnector connector)
         {
             logger.LogDebug("Creating instance of {class}", nameof(MainViewModel));
-            this.threadLogic = threadLogic;
 
+            this.logger = logger;
+            this.threadLogic = threadLogic;
+            this.recorderLogic = recorderLogic;
+            this.replayLogic = replayLogic;
+            this.connector = connector;
+
+            RegisterEvents();
+        }
+
+        public void Dispose()
+        {
+            logger.LogDebug("Disposing {class}", nameof(MainViewModel));
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                DeregisterEvents();
+            }
+        }
+
+        private void RegisterEvents()
+        {
             recorderLogic.RecordsUpdated += RecordsUpdated;
             replayLogic.RecordsUpdated += RecordsUpdated;
             replayLogic.CurrentFrameChanged += CurrentFrameChanged;
             connector.SimStateUpdated += SimStateUpdated;
+        }
+
+        private void DeregisterEvents()
+        {
+            recorderLogic.RecordsUpdated -= RecordsUpdated;
+            replayLogic.RecordsUpdated -= RecordsUpdated;
+            replayLogic.CurrentFrameChanged -= CurrentFrameChanged;
+            connector.SimStateUpdated -= SimStateUpdated;
         }
 
         private void RecordsUpdated(object sender, RecordsUpdatedEventArgs e)

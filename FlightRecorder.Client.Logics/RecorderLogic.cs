@@ -6,11 +6,12 @@ using System.Diagnostics;
 
 namespace FlightRecorder.Client.Logics
 {
-    public class RecorderLogic : IRecorderLogic
+    public class RecorderLogic : IRecorderLogic, IDisposable
     {
         public event EventHandler<RecordsUpdatedEventArgs> RecordsUpdated;
 
         private readonly ILogger<RecorderLogic> logger;
+        private readonly IConnector connector;
         private readonly Stopwatch stopwatch = new();
 
         private long? startMilliseconds;
@@ -28,8 +29,23 @@ namespace FlightRecorder.Client.Logics
         {
             logger.LogDebug("Creating instance of {class}", nameof(RecorderLogic));
             this.logger = logger;
+            this.connector = connector;
 
             connector.SimStateUpdated += Connector_SimStateUpdated;
+        }
+        public void Dispose()
+        {
+            logger.LogDebug("Disposing {class}", nameof(RecorderLogic));
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                connector.SimStateUpdated -= Connector_SimStateUpdated;
+            }
         }
 
         private void Connector_SimStateUpdated(object sender, SimStateUpdatedEventArgs e)

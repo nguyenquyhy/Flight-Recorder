@@ -55,11 +55,8 @@ namespace FlightRecorder.Client
 
             ServiceProvider = serviceCollection.BuildServiceProvider();
 
-            using (var scope = ServiceProvider.CreateScope())
-            {
-                MainWindow = scope.ServiceProvider.GetRequiredService<MainWindow>();
-                MainWindow.Show();
-            }
+            MainWindow = ServiceProvider.GetRequiredService<WindowFactory>().Create<MainWindow>(ServiceProvider);
+            MainWindow.Show();
         }
 
         protected override void OnExit(ExitEventArgs e)
@@ -104,6 +101,7 @@ namespace FlightRecorder.Client
             services.AddSingleton<IConnector, Connector>();
             services.AddSingleton<ExportLogic>();
             services.AddSingleton<IDialogLogic, DialogLogic>();
+            services.AddSingleton<WindowFactory>();
 
             services.AddScoped<Orchestrator>();
             services.AddScoped<StateMachine>();

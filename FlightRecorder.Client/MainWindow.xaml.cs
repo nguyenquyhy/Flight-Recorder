@@ -1,6 +1,5 @@
 ﻿using FlightRecorder.Client.Logics;
 using FlightRecorder.Client.SimConnectMSFS;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System;
@@ -25,6 +24,7 @@ namespace FlightRecorder.Client
         private readonly IConnector connector;
         private readonly DrawingLogic drawingLogic;
         private readonly ExportLogic exportLogic;
+        private readonly WindowFactory windowFactory;
         private readonly IRecorderLogic recorderLogic;
 
         private readonly string currentVersion;
@@ -35,7 +35,8 @@ namespace FlightRecorder.Client
             IConnector connector,
             DrawingLogic drawingLogic,
             ExportLogic exportLogic,
-            Orchestrator orchestrator)
+            Orchestrator orchestrator,
+            WindowFactory windowFactory)
             : base(orchestrator.ThreadLogic, orchestrator.StateMachine, orchestrator.ViewModel, orchestrator.ReplayLogic)
         {
             InitializeComponent();
@@ -44,6 +45,7 @@ namespace FlightRecorder.Client
             this.connector = connector;
             this.drawingLogic = drawingLogic;
             this.exportLogic = exportLogic;
+            this.windowFactory = windowFactory;
             this.recorderLogic = orchestrator.RecorderLogic;
 
             stateMachine.StateChanged += StateMachine_StateChanged;
@@ -137,8 +139,7 @@ namespace FlightRecorder.Client
 
         private void ButtonReplayAI_Click(object sender, RoutedEventArgs e)
         {
-            using var scope = (Application.Current as App).ServiceProvider.CreateScope();
-            var window = scope.ServiceProvider.GetService<AIWindow>();
+            var window = windowFactory.Create<AIWindow>((Application.Current as App).ServiceProvider);
             window.Owner = this;
             window.ShowInTaskbar = false;
             window.ShowWithData(viewModel.SimState.AircraftTitle, viewModel.FileName, replayLogic.ToData(currentVersion));
@@ -187,8 +188,7 @@ namespace FlightRecorder.Client
 
         private void ButtonLoadAI_Click(object sender, RoutedEventArgs e)
         {
-            using var scope = (Application.Current as App).ServiceProvider.CreateScope();
-            var window = scope.ServiceProvider.GetService<AIWindow>();
+            var window = windowFactory.Create<AIWindow>((Application.Current as App).ServiceProvider);
             window.Owner = this;
             window.ShowInTaskbar = false;
             window.ShowWithData(viewModel.SimState?.AircraftTitle);

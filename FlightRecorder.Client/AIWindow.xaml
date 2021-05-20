@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FlightRecorder.Client"
         mc:Ignorable="d"
-        Title="AI Replay" Height="195" d:Height="195" Width="450" MinWidth="450">
+        Title="AI Replay" Height="195" d:Height="195" Width="450" MinWidth="450" Closing="Window_Closing">
 
     <Grid Margin="5">
         <StackPanel>
@@ -90,7 +90,7 @@
 
                 <TextBlock Text="Recorded as: " Grid.Row="0" Grid.Column="0"
                            Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=DisconnectedEmpty|IdleEmpty}"/>
-                <TextBlock x:Name="TextRecordedAs" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" ToolTip="{Binding ElementName=TextRecordedAs, Path=Text}"
+                <TextBlock x:Name="TextRecordedAs" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" ToolTip="{Binding ElementName=TextRecordedAs, Path=Text}" TextTrimming="CharacterEllipsis"
                            Visibility="{Binding State, Converter={StaticResource ValueToCollapsedConverter}, ConverterParameter=DisconnectedEmpty|IdleEmpty}">
                     <TextBlock.Text>
                         <MultiBinding Converter="{StaticResource RecordedAsConverter}">

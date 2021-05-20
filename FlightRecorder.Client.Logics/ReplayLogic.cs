@@ -9,7 +9,7 @@ using System.Timers;
 
 namespace FlightRecorder.Client.Logics
 {
-    public class ReplayLogic : IReplayLogic
+    public class ReplayLogic : IReplayLogic, IDisposable
     {
         public event EventHandler<RecordsUpdatedEventArgs> RecordsUpdated;
         public event EventHandler ReplayFinished;
@@ -55,12 +55,40 @@ namespace FlightRecorder.Client.Logics
         public ReplayLogic(ILogger<ReplayLogic> logger, IConnector connector)
         {
             logger.LogDebug("Creating instance of {class}", nameof(ReplayLogic));
+
             this.logger = logger;
             this.connector = connector;
 
+            RegisterEvents();
+        }
+
+        public void Dispose()
+        {
+            logger.LogDebug("Disposing {class}", nameof(RecorderLogic));
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                DeregisterEvents();
+            }
+        }
+
+        private void RegisterEvents()
+        {
             connector.AircraftIdReceived += Connector_AircraftIdReceived;
             connector.CreatingObjectFailed += Connector_CreatingObjectFailed;
             connector.Frame += Connector_Frame;
+        }
+
+        private void DeregisterEvents()
+        {
+            connector.AircraftIdReceived -= Connector_AircraftIdReceived;
+            connector.CreatingObjectFailed -= Connector_CreatingObjectFailed;
+            connector.Frame -= Connector_Frame;
         }
 
         #region Public Functions

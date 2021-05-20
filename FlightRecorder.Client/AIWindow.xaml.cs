@@ -64,6 +64,26 @@ namespace FlightRecorder.Client
             }
         }
 
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (stateMachine.CurrentState != StateMachine.State.End // Already exiting
+                )
+            {
+                e.Cancel = true;
+                if (await stateMachine.TransitAsync(StateMachine.Event.Exit))
+                {
+                    if (stateMachine.CurrentState == StateMachine.State.End)
+                    {
+                        // At this point, this might still be in the same thread because there is no async operation triggered.
+                        // So we want to force a thread switch to be able to Close again.
+                        await Task.Delay(10);
+                        Close();
+                        Owner.Activate();
+                    }
+                }
+            }
+        }
+
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as MenuItem).Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
