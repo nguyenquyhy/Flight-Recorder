@@ -146,7 +146,7 @@
                     </Button>
 
                     <Button Content="▼" Grid.Column="1"
-                            IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=IdleSaved|IdleUnsaved}"
+                            IsEnabled="{Binding State, Converter={StaticResource ValueToFalseConverter}, ConverterParameter=DisconnectedEmpty|IdleEmpty|Recording|LoadingDisconnected|LoadingIdle}"
                             Click="ButtonContext_Click">
                         <Button.ContextMenu>
                             <ContextMenu>
@@ -218,7 +218,6 @@
                     </Button>
 
                     <Button Content="▼" Grid.Column="1" ContextMenuService.Placement="Bottom"
-                            IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=DisconnectedEmpty|DisconnectedSaved|DisconnectedUnsaved|IdleEmpty|IdleSaved|IdleUnsaved}"
                             Click="ButtonContext_Click">
                         <Button.ContextMenu>
                             <ContextMenu>
