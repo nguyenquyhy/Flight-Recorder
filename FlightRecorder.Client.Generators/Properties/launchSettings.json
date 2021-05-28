@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FlightRecorder.Client.Generators": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\FlightRecorder.Client.SimConnectMSFS\\FlightRecorder.Client.SimConnectMSFS.csproj"
+    }
+  }
+}
