@@ -1,0 +1,4 @@
+numpy
+matplotlib
+pandas
+pymap3d
