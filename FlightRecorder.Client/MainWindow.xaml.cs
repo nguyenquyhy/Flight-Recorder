@@ -142,7 +142,7 @@ namespace FlightRecorder.Client
             var window = windowFactory.Create<AIWindow>((Application.Current as App).ServiceProvider);
             window.Owner = this;
             window.ShowInTaskbar = false;
-            window.ShowWithData(viewModel.SimState.AircraftTitle, viewModel.FileName, replayLogic.ToData(currentVersion));
+            window.ShowWithData(viewModel.SimState?.AircraftTitle, viewModel.FileName, replayLogic.ToData(currentVersion));
         }
 
         private async void ButtonSave_Click(object sender, RoutedEventArgs e)
