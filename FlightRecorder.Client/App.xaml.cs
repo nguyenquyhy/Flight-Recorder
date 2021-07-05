@@ -5,6 +5,8 @@ using Microsoft.AppCenter.Analytics;
 using Microsoft.AppCenter.Crashes;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using Serilog.Events;
+using Serilog.Sink.AppCenter;
 using System.Linq;
 using System.Windows;
 
@@ -89,6 +91,10 @@ namespace FlightRecorder.Client
                 .WriteTo.Logger(config => config
                     .MinimumLevel.Information()
                     .WriteTo.File("flightrecorder.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3, buffered: true)
+                )
+                .WriteTo.Logger(config => config
+                    .MinimumLevel.Information()
+                    .WriteTo.AppCenterSink(target: AppCenterTarget.ExceptionsAsEvents)
                 )
                 .CreateLogger();
 
