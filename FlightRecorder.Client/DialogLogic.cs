@@ -12,7 +12,7 @@ namespace FlightRecorder.Client
 {
     public class DialogLogic : IDialogLogic
     {
-        private const string recorderFileFilter = "Recorded Flight|*.flightrecorder";
+        private const string recorderFileFilter = "Recorded Flight|*.fltrec;*.flightrecorder";
 
         private readonly ILogger<DialogLogic> logger;
 
@@ -35,7 +35,7 @@ namespace FlightRecorder.Client
         {
             var dialog = new SaveFileDialog
             {
-                FileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm}.flightrecorder",
+                FileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm}.fltrec",
                 Filter = recorderFileFilter
             };
             if (dialog.ShowDialog() == true)
