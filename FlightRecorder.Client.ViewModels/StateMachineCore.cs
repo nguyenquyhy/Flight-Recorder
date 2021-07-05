@@ -19,6 +19,12 @@ namespace FlightRecorder.Client
         private readonly ConcurrentDictionary<Event, TaskCompletionSource<State>> waitingTasks = new();
         private readonly Dictionary<State, Dictionary<Event, Transition>> stateLogics = new();
 
+        /// <summary>
+        /// This is to store the events that trigger during another long running transition,
+        /// so that if the long running transition is reverted, we can replay those events.
+        /// </summary>
+        private List<Event> transitioningEvents = null;
+
         public State CurrentState { get; private set; } = State.Start;
 
         public StateMachineCore(ILogger logger, IDialogLogic dialogLogic, MainViewModel viewModel)
@@ -38,6 +44,12 @@ namespace FlightRecorder.Client
 
             if (stateLogics.TryGetValue(CurrentState, out var transitions) && transitions.TryGetValue(e, out var transition))
             {
+                if (transitioningEvents != null && !waitingTasks.Keys.Contains(e))
+                {
+                    logger.LogInformation("{event} is triggered from {state} during a multiple transition.", e, CurrentState);
+                    transitioningEvents.Add(e);
+                }
+
                 if (transition.ViaEvents != null)
                 {
                     return await ExecuteMultipleTransitionsAsync(e, transition.ViaEvents, transition.WaitForEvents, transition.ShouldRevertOnError, transition.ErrorMessage);
@@ -95,6 +107,13 @@ namespace FlightRecorder.Client
 
             var originalState = CurrentState;
 
+            if (transitioningEvents != null)
+            {
+                logger.LogError("{event} is triggered when another multiple transition is happening!", originatingEvent);
+            }
+
+            var localTransitioningEvents = new List<Event>();
+            transitioningEvents = localTransitioningEvents;
             try
             {
                 foreach (var via in viaEvents)
@@ -130,7 +149,7 @@ namespace FlightRecorder.Client
                             if (revertOnError)
                             {
                                 logger.LogInformation("Transition from {state} by {via} was cancelled! Revert back to orignal state {original}.", oldState, via, originalState);
-                                RevertState(originalState, originatingEvent);
+                                await RevertStateAsync(originalState, originatingEvent, localTransitioningEvents);
                             }
 
                             break;
@@ -141,19 +160,35 @@ namespace FlightRecorder.Client
             catch (Exception ex) when (revertOnError)
             {
                 logger.LogError(ex, "Cannot complete the transition from {state} by {event}! Revert back to orignal state.", originalState, originatingEvent);
-                RevertState(originalState, originatingEvent);
+                await RevertStateAsync(originalState, originatingEvent, localTransitioningEvents);
                 dialogLogic.Error(errorMessage);
+            }
+            finally
+            {
+                transitioningEvents = null;
             }
 
             return success;
         }
 
-        protected void RevertState(State originalState, Event originatingEvent)
+        protected async Task RevertStateAsync(State originalState, Event originatingEvent, List<Event> localTransitioningEvents)
         {
+            logger.LogInformation("Reverting to {originalState} from transition by {originatingEvent}", originalState, originatingEvent);
+
             var oldState = CurrentState;
             CurrentState = originalState;
             StateChanged?.Invoke(this, new StateChangedEventArgs(oldState, originalState, originatingEvent));
             viewModel.State = originalState;
+
+            if (localTransitioningEvents != null)
+            {
+                transitioningEvents = null;
+                foreach (var e in localTransitioningEvents)
+                {
+                    logger.LogInformation("Replay {event} from {state}", e, CurrentState);
+                    await TransitAsync(e);
+                }
+            }
         }
 
         protected void Register(Transition logic)
