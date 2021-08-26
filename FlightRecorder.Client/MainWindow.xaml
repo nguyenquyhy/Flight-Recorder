@@ -258,11 +258,11 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="Latitude" Grid.Row="0" Grid.Column="0" />
-                    <TextBlock Text="{Binding Latitude}" Grid.Row="0" Grid.Column="1" />
+                    <TextBlock Text="{Binding Latitude}" Grid.Row="0" Grid.Column="1" ToolTip="Click to copy" MouseUp="TextBlock_MouseUp" />
                     <TextBlock Text="Longitude" Grid.Row="1" Grid.Column="0" />
-                    <TextBlock Text="{Binding Longitude}" Grid.Row="1" Grid.Column="1" />
+                    <TextBlock Text="{Binding Longitude}" Grid.Row="1" Grid.Column="1" ToolTip="Click to copy" MouseUp="TextBlock_MouseUp" />
                     <TextBlock Text="Altitude" Grid.Row="2" Grid.Column="0" />
-                    <TextBlock Text="{Binding Altitude}" Grid.Row="2" Grid.Column="1" />
+                    <TextBlock Text="{Binding Altitude}" Grid.Row="2" Grid.Column="1" ToolTip="Click to copy" MouseUp="TextBlock_MouseUp" />
 
                     <TextBlock Text="Pitch" Grid.Row="3" Grid.Column="0" />
                     <TextBlock Text="{Binding Pitch}" Grid.Row="3" Grid.Column="1" />

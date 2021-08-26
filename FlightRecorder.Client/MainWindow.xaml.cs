@@ -260,5 +260,10 @@ namespace FlightRecorder.Client
         {
             drawingLogic.Draw(replayLogic.Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
         }
+
+        private void TextBlock_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            Clipboard.SetText((sender as TextBlock).Text);
+        }
     }
 }
