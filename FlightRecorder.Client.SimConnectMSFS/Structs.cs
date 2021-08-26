@@ -34,6 +34,12 @@ namespace FlightRecorder.Client
         public double RotationVelocityBodyY;
         [SimConnectVariable(Name = "ROTATION VELOCITY BODY Z", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
         public double RotationVelocityBodyZ;
+        [SimConnectVariable(Name = "ACCELERATION BODY X", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
+        public double AccelerationBodyX;
+        [SimConnectVariable(Name = "ACCELERATION BODY Y", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
+        public double AccelerationBodyY;
+        [SimConnectVariable(Name = "ACCELERATION BODY Z", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
+        public double AccelerationBodyZ;
 
         [SimConnectVariable(Name = "AILERON POSITION", Unit = "Position", Type = SIMCONNECT_DATATYPE.FLOAT64)]
         public double AileronPosition;
