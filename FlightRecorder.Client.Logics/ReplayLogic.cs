@@ -38,6 +38,7 @@ namespace FlightRecorder.Client.Logics
         private bool isReplayStopping;
         private long? replayMilliseconds;
         private long? pausedMilliseconds;
+        private long? offsetStartMilliseconds;
 
         private AircraftPositionStruct? currentPosition = null;
         private long? lastTriggeredMilliseconds = null;
@@ -109,17 +110,18 @@ namespace FlightRecorder.Client.Logics
 
             stopwatch.Restart();
             lastTriggeredMilliseconds = null;
-            replayMilliseconds = stopwatch.ElapsedMilliseconds;
+            replayMilliseconds = stopwatch.ElapsedMilliseconds - offsetStartMilliseconds ?? 0;
 
             if (Records.Any())
             {
+                var currentPosition = Records[currentFrame].position;
                 if (isAI)
                 {
-                    aiRequestId = connector.Spawn(AircraftTitle, Records.First().position);
+                    aiRequestId = connector.Spawn(AircraftTitle, currentPosition);
                 }
                 else
                 {
-                    connector.Init(0, Records.First().position);
+                    connector.Init(0, currentPosition);
                 }
             }
 
@@ -171,6 +173,10 @@ namespace FlightRecorder.Client.Logics
                 {
                     // Ignore as this happens when Pause is clicked before the first frame is calculated
                 }
+                else if (frame == pausedFrame)
+                {
+                    // Ignore to prevent init unnecessarily
+                }
                 else if (frame >= 0 && frame < Records.Count)
                 {
                     connector.Init(aiId ?? 0, Records[frame].position);
@@ -213,6 +219,11 @@ namespace FlightRecorder.Client.Logics
             {
                 (var elapsed, var position) = Records[value];
                 MoveAircraft(elapsed, position, null, null, 0);
+            }
+            else if (!IsReplaying)
+            {
+                (var elapsed, _) = Records[value];
+                offsetStartMilliseconds = elapsed - startMilliseconds;
             }
         }
 
@@ -420,6 +431,7 @@ namespace FlightRecorder.Client.Logics
             pausedMilliseconds = null;
             pausedFrame = null;
             replayMilliseconds = null;
+            offsetStartMilliseconds = null;
 
             ReplayFinished?.Invoke(this, new EventArgs());
         }
