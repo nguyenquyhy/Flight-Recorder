@@ -38,7 +38,7 @@ namespace FlightRecorder.Client.ViewModels.States
 
         public async Task<State?> ExecuteAsync()
         {
-            if (ViaEvents != null) throw new InvalidOperationException("This transition cannot be executed directly!");
+            if (ViaEvents != null) throw new InvalidOperationException($"This transition from {FromState} by {ByEvent} cannot be executed directly!");
 
             foreach (var action in Actions)
             {

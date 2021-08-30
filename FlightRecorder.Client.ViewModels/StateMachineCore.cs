@@ -40,7 +40,7 @@ namespace FlightRecorder.Client
         /// <returns>True to indicate that user did not cancel any prompt</returns>
         public async Task<bool> TransitAsync(Event e)
         {
-            logger.LogTrace("Triggering event {event} from state {state}", e, CurrentState);
+            logger.LogDebug("Triggering event {event} from state {state}", e, CurrentState);
 
             if (stateLogics.TryGetValue(CurrentState, out var transitions) && transitions.TryGetValue(e, out var transition))
             {
@@ -75,6 +75,8 @@ namespace FlightRecorder.Client
 
             if (resultingState.HasValue)
             {
+                // TODO: might need to suppress this if waitingTask is applicable
+                // to avoid race condition with state setting in the multiple transition
                 CurrentState = resultingState.Value;
 
                 StateChanged?.Invoke(this, new StateChangedEventArgs(oldState, resultingState.Value, originatingEvent));
@@ -86,7 +88,7 @@ namespace FlightRecorder.Client
 
             logger.LogInformation("Triggered event {event} from state {state} to {resultingState}", originatingEvent, oldState, resultingState);
 
-            if (waitingTasks.TryRemove(originatingEvent, out var waitingTask))
+            if (waitingTasks.TryGetValue(originatingEvent, out var waitingTask))
             {
                 waitingTask.SetResult(CurrentState);
             }
@@ -116,20 +118,40 @@ namespace FlightRecorder.Client
             transitioningEvents = localTransitioningEvents;
             try
             {
-                foreach (var via in viaEvents)
+                // NOTE: we have to initialize all the waiting tasks here to prevent concurrency issue
+                // when the waiting event triggered before the waiting task is initialized
+                if (waitForEvents != null)
                 {
-                    // TODO: maybe recurse here?
-
-                    if (waitForEvents != null && waitForEvents.Contains(via))
+                    foreach (var waitForEvent in waitForEvents)
                     {
                         var tcs = new TaskCompletionSource<State>();
-                        waitingTasks.TryAdd(via, tcs);
-                        await tcs.Task;
+                        waitingTasks.TryAdd(waitForEvent, tcs);
+                    }
+                }
 
-                        // This event is completed asynchronously in another thread, so it doesn't need to trigger here
+                foreach (var via in viaEvents)
+                {
+                    logger.LogDebug("Processing {via} at state {state} due to {event}.", via, CurrentState, originatingEvent);
+                    if (waitForEvents != null && waitForEvents.Contains(via))
+                    {
+                        // This event is completed asynchronously in another thread
+                        if (waitingTasks.TryGetValue(via, out var waitingTask))
+                        {
+                            logger.LogInformation("Waiting for {via} at state {state} due to {event}.", via, CurrentState, originatingEvent);
+                            await waitingTask.Task;
+                            logger.LogInformation("Finished waiting for {via} at state {state} due to {event}.", via, CurrentState, originatingEvent);
+
+                            waitingTasks.Remove(via, out _);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException($"Cannot find Task for {via}!");
+                        }
                     }
                     else
                     {
+                        // TODO: maybe recurse here?
+
                         var oldState = CurrentState;
                         var resultingState = await stateLogics[oldState][via].ExecuteAsync();
                         if (resultingState.HasValue)
