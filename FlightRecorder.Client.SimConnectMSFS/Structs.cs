@@ -135,6 +135,36 @@ namespace FlightRecorder.Client
         public double WingFlexPercent3;
         [SimConnectVariable(Name = "WING FLEX PCT:4", Unit = "Percent over 100", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
         public double WingFlexPercent4;
+        [SimConnectVariable(Name = "AIRSPEED TRUE", Unit = "Knots", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double TrueAirspeed;
+        [SimConnectVariable(Name = "AIRSPEED INDICATED", Unit = "Knots", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double IndicatedAirspeed;
+        [SimConnectVariable(Name = "AIRSPEED MACH", Unit = "Mach", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double MachAirspeed;
+        [SimConnectVariable(Name = "GPS GROUND SPEED", Unit = "Knots", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double GpsGroundSpeed;
+        [SimConnectVariable(Name = "GROUND VELOCITY", Unit = "Knots", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double GroundSpeed;
+        [SimConnectVariable(Name = "HEADING INDICATOR", Unit = "Degrees", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double HeadingIndicator;
+        [SimConnectVariable(Name = "ATTITUDE INDICATOR PITCH DEGREES", Unit = "Degrees", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double AIPitch;
+        [SimConnectVariable(Name = "ATTITUDE INDICATOR BANK DEGREES", Unit = "Degrees", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double AIBank;
+        [SimConnectVariable(Name = "RECIP ENG MANIFOLD PRESSURE:1", Unit = "Psi", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double EngineManifoldPressure1;
+        [SimConnectVariable(Name = "RECIP ENG MANIFOLD PRESSURE:2", Unit = "Psi", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double EngineManifoldPressure2;
+        [SimConnectVariable(Name = "RECIP ENG MANIFOLD PRESSURE:3", Unit = "Psi", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double EngineManifoldPressure3;
+        [SimConnectVariable(Name = "RECIP ENG MANIFOLD PRESSURE:4", Unit = "Psi", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double EngineManifoldPressure4;
+        [SimConnectVariable(Name = "TURN COORDINATOR BALL", Unit = "Position 128", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double TurnCoordinatorBall;
+        [SimConnectVariable(Name = "HSI CDI NEEDLE", Unit = "Number", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double HsiCDI;
+        [SimConnectVariable(Name = "STALL WARNING", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.None)]
+        public uint StallWarning;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
