@@ -106,7 +106,7 @@ namespace FlightRecorder.Client.Logics
 
             stopwatch.Start();
 
-            logger.LogInformation("Start replay...");
+            logger.LogInformation("Start replay from {currentFrame}...", currentFrame);
 
             stopwatch.Restart();
             lastTriggeredMilliseconds = null;
