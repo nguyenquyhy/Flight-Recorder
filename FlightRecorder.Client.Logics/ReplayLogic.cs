@@ -409,6 +409,7 @@ namespace FlightRecorder.Client.Logics
         {
             logger.LogInformation("Replay finished.");
 
+            currentFrame = 0;
             isReplayStopping = false;
 
             if (isAI)
