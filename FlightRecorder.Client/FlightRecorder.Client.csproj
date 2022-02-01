@@ -27,7 +27,7 @@
     <PackageReference Include="Serilog.Sink.AppCenter" Version="1.3.0" />
     <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
-    <PackageReference Include="SharpZipLib" Version="1.3.2" />
+    <PackageReference Include="SharpZipLib" Version="1.3.3" />
   </ItemGroup>
 
   <ItemGroup>
