@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace FlightRecorder.Client
 {
@@ -96,6 +97,14 @@ namespace FlightRecorder.Client
                         viewModel.CurrentFrame = currentFrame + 1;
                     }
                     break;
+            }
+        }
+
+        protected void ButtonRepeat_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is ToggleButton buttonRepeat)
+            {
+                replayLogic.SetRepeat(buttonRepeat.IsChecked == true);
             }
         }
 

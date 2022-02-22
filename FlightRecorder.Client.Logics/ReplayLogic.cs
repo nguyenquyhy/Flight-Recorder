@@ -34,6 +34,7 @@ namespace FlightRecorder.Client.Logics
         private int currentFrame;
 
         private double rate = 1;
+        private bool repeat = false;
         private int? pausedFrame;
         private double? pausedRate;
         private bool isReplayStopping;
@@ -237,6 +238,11 @@ namespace FlightRecorder.Client.Logics
             this.rate = rate;
         }
 
+        public void SetRepeat(bool repeat)
+        {
+            this.repeat = repeat;
+        }
+
         public void Unfreeze()
         {
             if (replayMilliseconds != null)
@@ -338,7 +344,7 @@ namespace FlightRecorder.Client.Logics
 
                 if (isReplayStopping)
                 {
-                    FinishReplay();
+                    FinishReplay(false);
                     return;
                 }
 
@@ -396,7 +402,7 @@ namespace FlightRecorder.Client.Logics
                         else
                         {
                             // Last frame
-                            FinishReplay();
+                            FinishReplay(true);
                             return;
                         }
                     }
@@ -414,7 +420,7 @@ namespace FlightRecorder.Client.Logics
             }
         }
 
-        private void FinishReplay()
+        private void FinishReplay(bool reachedLastFrame)
         {
             logger.LogInformation("Replay finished.");
 
@@ -443,7 +449,14 @@ namespace FlightRecorder.Client.Logics
             replayMilliseconds = null;
             offsetStartMilliseconds = null;
 
-            ReplayFinished?.Invoke(this, new EventArgs());
+            if (reachedLastFrame && repeat)
+            {
+                Replay();
+            }
+            else
+            {
+                ReplayFinished?.Invoke(this, new EventArgs());
+            }
         }
 
         private void MoveAircraft(long nextElapsed, AircraftPositionStruct position, long? lastElapsed, AircraftPositionStruct? lastPosition, long currentElapsed)

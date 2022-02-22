@@ -18,6 +18,7 @@ namespace FlightRecorder.Client.Logics
         void Seek(int value);
         bool StopReplay();
         void ChangeRate(double rate);
+        void SetRepeat(bool repeat);
         void Unfreeze();
         void NotifyPosition(AircraftPositionStruct? value);
 
