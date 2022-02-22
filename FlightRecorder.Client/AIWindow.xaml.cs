@@ -25,14 +25,14 @@ namespace FlightRecorder.Client
             this.drawingLogic = drawingLogic;
         }
 
-        public void ShowWithData(string currentAircraftTitle, string fileName, SavedData savedData)
+        public void ShowWithData(string? currentAircraftTitle, string? fileName, SavedData savedData)
         {
             viewModel.CurrentAircraftTitle = currentAircraftTitle;
             replayLogic.FromData(fileName, savedData);
             replayLogic.AircraftTitle = viewModel.AircraftTitle;
             Show();
         }
-        public void ShowWithData(string currentAircraftTitle)
+        public void ShowWithData(string? currentAircraftTitle)
         {
             viewModel.CurrentAircraftTitle = currentAircraftTitle;
             Show();
@@ -86,7 +86,7 @@ namespace FlightRecorder.Client
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as MenuItem).Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
+            if ((sender as MenuItem)?.Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
             {
                 ButtonSpeed.Content = header;
                 replayLogic.ChangeRate(rate);

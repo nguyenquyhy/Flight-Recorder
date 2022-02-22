@@ -35,7 +35,7 @@ namespace FlightRecorder.Client
 
         protected virtual async Task Window_LoadedAsync(object sender, RoutedEventArgs e)
         {
-            (threadLogic as ThreadLogic).Register(this);
+            threadLogic.Register(this);
             await stateMachine.TransitAsync(StateMachine.Event.StartUp);
 
             viewModel.SimConnectState = SimConnectState.Connecting;
@@ -47,7 +47,10 @@ namespace FlightRecorder.Client
 
         protected void ButtonContext_Click(object sender, RoutedEventArgs e)
         {
-            (sender as Button).ContextMenu.IsOpen = true;
+            if (sender is Button button)
+            {
+                button.ContextMenu.IsOpen = true;
+            }
         }
 
         protected async void ButtonReplay_Click(object sender, RoutedEventArgs e)

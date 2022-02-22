@@ -55,23 +55,14 @@ namespace FlightRecorder.Client
             End
         }
 
-        public StateMachine(ILogger<StateMachine> logger, MainViewModel viewModel, IRecorderLogic recorderLogic, IReplayLogic replayLogic, IDialogLogic dialogLogic)
+        public StateMachine(ILogger<StateMachine> logger, MainViewModel viewModel, IRecorderLogic recorderLogic, IReplayLogic replayLogic, IDialogLogic dialogLogic, VersionLogic versionLogic)
             : base(logger, dialogLogic, viewModel)
         {
             logger.LogDebug("Creating instance of {class}", nameof(StateMachine));
             this.viewModel = viewModel;
             this.recorderLogic = recorderLogic;
             this.replayLogic = replayLogic;
-            var version = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version?.ToString();
-            if (version == null)
-            {
-                logger.LogWarning("Cannot get assembly version. Revert to 0.0.0.0.");
-                this.currentVersion = "0.0.0.0";
-            }
-            else
-            {
-                this.currentVersion = version;
-            }
+            this.currentVersion = versionLogic.GetVersion();
 
             InitializeStateMachine();
         }

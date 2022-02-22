@@ -8,8 +8,9 @@ namespace FlightRecorder.Client.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (string.IsNullOrEmpty(parameter as string)) return string.Empty;
-            var tokens = (parameter as string).Split("|");
+            var stringValue = parameter as string;
+            if (string.IsNullOrEmpty(stringValue)) return string.Empty;
+            var tokens = stringValue.Split("|");
             return (value is bool b && b) ? tokens[0] : (tokens.Length > 1 ? tokens[1] : string.Empty);
         }
 

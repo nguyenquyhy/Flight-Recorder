@@ -9,6 +9,7 @@
     <Product>Flight Recorder</Product>
     <ApplicationIcon>Logo.ico</ApplicationIcon>
     <DebugType>embedded</DebugType>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

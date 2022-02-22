@@ -5,9 +5,9 @@ namespace FlightRecorder.Client
 {
     public class ThreadLogic : IThreadLogic
     {
-        private Window window = null;
+        private Window? window = null;
 
-        public void Register(Window window) => this.window = window;
+        public void Register(object window) => this.window = window as Window ?? throw new ArgumentException("Window object is required!", nameof(window));
 
         public void RunInUIThread(Action action)
         {

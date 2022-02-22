@@ -11,7 +11,7 @@ namespace FlightRecorder.Client.Converters
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            var values = parameter.ToString().Split("|").ToArray();
+            var values = parameter.ToString()?.Split("|").ToArray() ?? Array.Empty<string>();
             return values.Contains(value.ToString()) ^ Reverse;
         }
 

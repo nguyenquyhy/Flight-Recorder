@@ -7,7 +7,7 @@ namespace FlightRecorder.Client
     {
         bool Confirm(string message);
         void Error(string error);
-        Task<string> SaveAsync(SavedData data);
-        Task<(string fileName, SavedData data)> LoadAsync();
+        Task<string?> SaveAsync(SavedData data);
+        Task<(string? fileName, SavedData? data)> LoadAsync();
     }
 }

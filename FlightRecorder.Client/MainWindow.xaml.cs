@@ -6,7 +6,6 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -35,6 +34,7 @@ namespace FlightRecorder.Client
             IConnector connector,
             DrawingLogic drawingLogic,
             ExportLogic exportLogic,
+            VersionLogic versionLogic,
             Orchestrator orchestrator,
             WindowFactory windowFactory)
             : base(orchestrator.ThreadLogic, orchestrator.StateMachine, orchestrator.ViewModel, orchestrator.ReplayLogic)
@@ -55,11 +55,11 @@ namespace FlightRecorder.Client
 
             DataContext = viewModel;
 
-            currentVersion = Assembly.GetEntryAssembly().GetName().Version.ToString();
+            currentVersion = versionLogic.GetVersion();
             Title += " " + currentVersion;
         }
 
-        private void StateMachine_StateChanged(object sender, StateChangedEventArgs e)
+        private void StateMachine_StateChanged(object? sender, StateChangedEventArgs e)
         {
             if (e.By == StateMachine.Event.Stop)
             {
@@ -110,7 +110,7 @@ namespace FlightRecorder.Client
             }
         }
 
-        private void Connector_AircraftPositionUpdated(object sender, AircraftPositionUpdatedEventArgs e)
+        private void Connector_AircraftPositionUpdated(object? sender, AircraftPositionUpdatedEventArgs e)
         {
             recorderLogic.NotifyPosition(e.Position);
             replayLogic.NotifyPosition(e.Position);
@@ -121,7 +121,7 @@ namespace FlightRecorder.Client
             });
         }
 
-        private void Connector_Closed(object sender, EventArgs e)
+        private void Connector_Closed(object? sender, EventArgs e)
         {
             logger.LogDebug("Start reconnecting...");
             InitializeConnector();
@@ -139,7 +139,7 @@ namespace FlightRecorder.Client
 
         private void ButtonReplayAI_Click(object sender, RoutedEventArgs e)
         {
-            var window = windowFactory.Create<AIWindow>((Application.Current as App).ServiceProvider);
+            var window = CreateAIWindow();
             window.Owner = this;
             window.ShowInTaskbar = false;
             window.ShowWithData(viewModel.SimState?.AircraftTitle, viewModel.FileName, replayLogic.ToData(currentVersion));
@@ -188,7 +188,7 @@ namespace FlightRecorder.Client
 
         private void ButtonLoadAI_Click(object sender, RoutedEventArgs e)
         {
-            var window = windowFactory.Create<AIWindow>((Application.Current as App).ServiceProvider);
+            var window = CreateAIWindow();
             window.Owner = this;
             window.ShowInTaskbar = false;
             window.ShowWithData(viewModel.SimState?.AircraftTitle);
@@ -202,7 +202,7 @@ namespace FlightRecorder.Client
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as MenuItem).Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
+            if ((sender as MenuItem)?.Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
             {
                 ButtonSpeed.Content = header;
                 replayLogic.ChangeRate(rate);
@@ -263,7 +263,18 @@ namespace FlightRecorder.Client
 
         private void TextBlock_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            Clipboard.SetText((sender as TextBlock).Text);
+            if (sender is TextBlock textBlock)
+            {
+                Clipboard.SetText(textBlock.Text);
+            }
+        }
+
+        private AIWindow CreateAIWindow()
+        {
+            var serviceProvider = (Application.Current as App)?.ServiceProvider ??
+                            throw new InvalidOperationException("ServiceProvider is not initialized!");
+            var window = windowFactory.Create<AIWindow>(serviceProvider);
+            return window;
         }
     }
 }

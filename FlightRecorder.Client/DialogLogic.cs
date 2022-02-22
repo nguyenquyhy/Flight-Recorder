@@ -31,7 +31,7 @@ namespace FlightRecorder.Client
             MessageBox.Show(error, "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
-        public async Task<string> SaveAsync(SavedData data)
+        public async Task<string?> SaveAsync(SavedData data)
         {
             var dialog = new SaveFileDialog
             {
@@ -65,7 +65,7 @@ namespace FlightRecorder.Client
             return null;
         }
 
-        public async Task<(string fileName, SavedData data)> LoadAsync()
+        public async Task<(string? fileName, SavedData? data)> LoadAsync()
         {
             var dialog = new OpenFileDialog
             {

@@ -14,7 +14,7 @@ namespace FlightRecorder.Client
     {
         readonly Action<IEnumerable<string>> processArgsFunc;
         readonly string applicationId;
-        Thread thread;
+        Thread? thread;
         string argDelimiter = "_;;_";
 
         /// <summary>

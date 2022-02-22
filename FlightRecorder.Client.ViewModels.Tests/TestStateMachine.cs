@@ -49,7 +49,8 @@ namespace FlightRecorder.Client.ViewModels.Tests
                 viewModel,
                 mockRecorderLogic.Object,
                 mockReplayLogic.Object,
-                mockDialogLogic.Object);
+                mockDialogLogic.Object,
+                new VersionLogic(factory.CreateLogger<VersionLogic>()));
         }
 
         [TestMethod]
@@ -62,7 +63,7 @@ namespace FlightRecorder.Client.ViewModels.Tests
             Assert.AreEqual(StateMachine.State.DisconnectedEmpty, viewModel.State);
 
             mockDialogLogic.Setup(logic => logic.LoadAsync())
-                .Returns(Task.FromResult(("test", new SavedData(
+                .Returns(Task.FromResult<(string?, SavedData?)>(("test", new SavedData(
                     "TEST_VERSION",
                     0,
                     1,

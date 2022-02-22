@@ -5,7 +5,6 @@ using Microsoft.AppCenter.Analytics;
 using Microsoft.AppCenter.Crashes;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using Serilog.Events;
 using Serilog.Sink.AppCenter;
 using System.Linq;
 using System.Windows;
@@ -33,7 +32,7 @@ namespace FlightRecorder.Client
 
         #endregion
 
-        public ServiceProvider ServiceProvider { get; private set; }
+        public ServiceProvider? ServiceProvider { get; private set; }
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -103,6 +102,7 @@ namespace FlightRecorder.Client
                 configure.AddSerilog();
             });
 
+            services.AddSingleton<VersionLogic>();
             services.AddSingleton<IThreadLogic, ThreadLogic>();
             services.AddSingleton<IConnector, Connector>();
             services.AddSingleton<ExportLogic>();
