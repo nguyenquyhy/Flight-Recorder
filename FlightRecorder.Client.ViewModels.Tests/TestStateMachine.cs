@@ -13,14 +13,14 @@ namespace FlightRecorder.Client.ViewModels.Tests
     [TestClass]
     public class TestStateMachine
     {
-        private Mock<IThreadLogic> mockThreadLogic;
-        private Mock<IRecorderLogic> mockRecorderLogic;
-        private Mock<IReplayLogic> mockReplayLogic;
-        private Mock<IConnector> mockConnector;
-        private Mock<IDialogLogic> mockDialogLogic;
+        private Mock<IThreadLogic> mockThreadLogic = null!;
+        private Mock<IRecorderLogic> mockRecorderLogic = null!;
+        private Mock<IReplayLogic> mockReplayLogic = null!;
+        private Mock<IConnector> mockConnector = null!;
+        private Mock<IDialogLogic> mockDialogLogic = null!;
 
-        private MainViewModel viewModel;
-        private StateMachine stateMachine;
+        private MainViewModel viewModel = null!;
+        private StateMachine stateMachine = null!;
 
         [TestInitialize]
         public void Setup()
@@ -29,7 +29,7 @@ namespace FlightRecorder.Client.ViewModels.Tests
                 .AddLogging(builder => builder.AddDebug())
                 .BuildServiceProvider();
 
-            var factory = serviceProvider.GetService<ILoggerFactory>();
+            var factory = serviceProvider.GetService<ILoggerFactory>()!;
 
             mockThreadLogic = new Mock<IThreadLogic>();
             mockRecorderLogic = new Mock<IRecorderLogic>();
