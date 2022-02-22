@@ -6,11 +6,11 @@ namespace FlightRecorder.Client
     [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
     public class SimConnectVariableAttribute : Attribute
     {
-        public string Name { get; set; }
-        public string Unit { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
         public SIMCONNECT_DATATYPE Type { get; set; }
         public SetType SetType { get; set; }
-        public string SetByEvent { get; set; }
+        public string? SetByEvent { get; set; }
         public double Minimum { get; set; }
         public double Maximum { get; set; }
     }

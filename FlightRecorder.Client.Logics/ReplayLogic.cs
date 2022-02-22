@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
@@ -11,9 +12,9 @@ namespace FlightRecorder.Client.Logics
 {
     public class ReplayLogic : IReplayLogic, IDisposable
     {
-        public event EventHandler<RecordsUpdatedEventArgs> RecordsUpdated;
-        public event EventHandler ReplayFinished;
-        public event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
+        public event EventHandler<RecordsUpdatedEventArgs>? RecordsUpdated;
+        public event EventHandler? ReplayFinished;
+        public event EventHandler<CurrentFrameChangedEventArgs>? CurrentFrameChanged;
 
         private const int EventThrottleMilliseconds = 500;
 
@@ -28,7 +29,7 @@ namespace FlightRecorder.Client.Logics
 
         public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; } = new();
 
-        public string AircraftTitle { get; set; }
+        public string? AircraftTitle { get; set; }
 
         private int currentFrame;
 
@@ -42,16 +43,16 @@ namespace FlightRecorder.Client.Logics
 
         private AircraftPositionStruct? currentPosition = null;
         private long? lastTriggeredMilliseconds = null;
-        private TaskCompletionSource<bool> tcs;
+        private TaskCompletionSource<bool>? tcs;
 
         private bool IsReplayable => Records != null && Records.Count > 0;
         private bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
         private bool IsPausing => pausedMilliseconds != null;
 
-        private bool isAI => !string.IsNullOrEmpty(AircraftTitle);
+        private bool IsAI([NotNullWhen(true)] string? aircraftTitle) => !string.IsNullOrEmpty(aircraftTitle);
         private uint? aiRequestId = null;
         private uint? aiId = null;
-        private Timer timer;
+        // private Timer timer;
 
         public ReplayLogic(ILogger<ReplayLogic> logger, IConnector connector)
         {
@@ -115,7 +116,7 @@ namespace FlightRecorder.Client.Logics
             if (Records.Any())
             {
                 var currentPosition = Records[currentFrame].position;
-                if (isAI)
+                if (IsAI(AircraftTitle))
                 {
                     aiRequestId = connector.Spawn(AircraftTitle, currentPosition);
                 }
@@ -160,11 +161,15 @@ namespace FlightRecorder.Client.Logics
                 if (frame == pausedFrame)
                 {
                     // No seeking => Resume based on pause time
+                    if (pausedMilliseconds == null) throw new InvalidOperationException("Cannot resume without pause time!");
+                    if (replayMilliseconds == null) throw new InvalidOperationException("Cannot resume without replay time!");
+                    if (pausedRate == null) throw new InvalidOperationException("Cannot resume without pause rate!");
                     replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((pausedMilliseconds - replayMilliseconds) / rate * pausedRate);
                 }
                 else
                 {
                     // Resume based on seeked frame
+                    if (startMilliseconds == null) throw new InvalidOperationException("Cannot resume without start time!");
                     replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((Records[frame].milliseconds - startMilliseconds) / rate);
                 }
 
@@ -236,11 +241,11 @@ namespace FlightRecorder.Client.Logics
         {
             if (replayMilliseconds != null)
             {
-                if (!isAI)
+                if (!IsAI(AircraftTitle))
                 {
                     connector.Unfreeze(0);
                 }
-                else
+                else if (aiId.HasValue)
                 {
                     connector.Unfreeze(aiId.Value);
                 }
@@ -262,15 +267,19 @@ namespace FlightRecorder.Client.Logics
         }
 
         public SavedData ToData(string clientVersion)
-            => new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, Records);
+        {
+            if (startMilliseconds == null) throw new InvalidOperationException("Invalid replay data without start time!");
+            if (endMilliseconds == null) throw new InvalidOperationException("Invalid replay data without end time!");
+            return new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, Records);
+        }
 
         #endregion
 
         #region Private Functions
 
-        private void Connector_AircraftIdReceived(object sender, AircraftIdReceivedEventArgs e)
+        private void Connector_AircraftIdReceived(object? sender, AircraftIdReceivedEventArgs e)
         {
-            if (isAI && aiRequestId == e.RequestId && aiId == null)
+            if (IsAI(AircraftTitle) && aiRequestId == e.RequestId && aiId == null)
             {
                 logger.LogDebug("Set AI ID {objectID}", e.ObjectId);
                 aiRequestId = null;
@@ -278,9 +287,9 @@ namespace FlightRecorder.Client.Logics
             }
         }
 
-        private void Connector_CreatingObjectFailed(object sender, EventArgs e)
+        private void Connector_CreatingObjectFailed(object? sender, EventArgs e)
         {
-            if (isAI && aiRequestId != null)
+            if (IsAI(AircraftTitle) && aiRequestId != null)
             {
                 logger.LogDebug("Fail to spawn for request {requestID}", aiRequestId);
                 aiRequestId = null;
@@ -288,7 +297,7 @@ namespace FlightRecorder.Client.Logics
             }
         }
 
-        private void Connector_Frame(object sender, EventArgs e)
+        private void Connector_Frame(object? sender, EventArgs e)
         {
             Tick();
         }
@@ -305,7 +314,7 @@ namespace FlightRecorder.Client.Logics
             //timer.Elapsed += Timer_Elapsed;
             //timer.Start();
 
-            if (!isAI)
+            if (!IsAI(AircraftTitle))
             {
                 connector.Freeze(0);
             }
@@ -340,7 +349,7 @@ namespace FlightRecorder.Client.Logics
                     continue;
                 }
 
-                if (isAI && aiId == null)
+                if (IsAI(AircraftTitle) && aiId == null)
                 {
                     // Wait for spawning
                     continue;
@@ -412,7 +421,7 @@ namespace FlightRecorder.Client.Logics
             currentFrame = 0;
             isReplayStopping = false;
 
-            if (isAI)
+            if (IsAI(AircraftTitle))
             {
                 //timer.Stop();
                 //timer = null;
@@ -452,7 +461,7 @@ namespace FlightRecorder.Client.Logics
                 }
                 nextValue = AircraftPositionStructOperator.Interpolate(nextValue, AircraftPositionStructOperator.ToSet(lastPosition.Value), interpolation);
             }
-            if (!isAI && currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
+            if (!IsAI(AircraftTitle) && currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
             {
                 lastTriggeredMilliseconds = stopwatch.ElapsedMilliseconds;
                 connector.TriggerEvents(currentPosition.Value, position);

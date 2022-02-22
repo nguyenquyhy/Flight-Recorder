@@ -20,8 +20,8 @@ namespace FlightRecorder.Client.Logics
         }
 
         private (int width, int height, int count)? cacheKey = null;
-        private Image<Rgba32> cachedBackground = null;
-        private List<int> cachedFrames = null;
+        private Image<Rgba32>? cachedBackground = null;
+        private List<int>? cachedFrames = null;
 
         public void ClearCache()
         {
@@ -31,7 +31,7 @@ namespace FlightRecorder.Client.Logics
             cachedFrames = null;
         }
 
-        public Image<Rgba32> Draw(int width, int height, List<(long milliseconds, AircraftPositionStruct position)> records, int currentFrame)
+        public Image<Rgba32>? Draw(int width, int height, List<(long milliseconds, AircraftPositionStruct position)> records, int currentFrame)
         {
             logger.LogTrace("Generate chart {frame}", currentFrame);
 

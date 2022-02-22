@@ -8,7 +8,7 @@ namespace FlightRecorder.Client.Logics
 {
     public class RecorderLogic : IRecorderLogic, IDisposable
     {
-        public event EventHandler<RecordsUpdatedEventArgs> RecordsUpdated;
+        public event EventHandler<RecordsUpdatedEventArgs>? RecordsUpdated;
 
         private readonly ILogger<RecorderLogic> logger;
         private readonly IConnector connector;
@@ -33,6 +33,7 @@ namespace FlightRecorder.Client.Logics
 
             connector.SimStateUpdated += Connector_SimStateUpdated;
         }
+
         public void Dispose()
         {
             logger.LogDebug("Disposing {class}", nameof(RecorderLogic));
@@ -48,7 +49,7 @@ namespace FlightRecorder.Client.Logics
             }
         }
 
-        private void Connector_SimStateUpdated(object sender, SimStateUpdatedEventArgs e)
+        private void Connector_SimStateUpdated(object? sender, SimStateUpdatedEventArgs e)
         {
             simState = e.State;
         }
@@ -88,7 +89,11 @@ namespace FlightRecorder.Client.Logics
         }
 
         public SavedData ToData(string clientVersion)
-            => new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, records);
+        {
+            if (startMilliseconds == null) throw new InvalidOperationException("Cannot get data before started recording!");
+            if (endMilliseconds == null) throw new InvalidOperationException("Cannot get data before finished recording!");
+            return new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, records);
+        }
 
         #endregion
     }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace FlightRecorder.Client.ViewModels.Tests
@@ -61,7 +62,13 @@ namespace FlightRecorder.Client.ViewModels.Tests
             Assert.AreEqual(StateMachine.State.DisconnectedEmpty, viewModel.State);
 
             mockDialogLogic.Setup(logic => logic.LoadAsync())
-                .Returns(Task.FromResult(("test", new SavedData())));
+                .Returns(Task.FromResult(("test", new SavedData(
+                    "TEST_VERSION",
+                    0,
+                    1,
+                    null,
+                    new List<(long milliseconds, AircraftPositionStruct position)>()
+                ))));
             await stateMachine.TransitAsync(StateMachine.Event.Load);
             Assert.AreEqual(StateMachine.State.DisconnectedSaved, viewModel.State);
         }

@@ -37,14 +37,11 @@ namespace FlightRecorder.Client
             builder.Append(@"
         public static SimState FromStruct(SimStateStruct s)
             => new SimState
-            {");
-            foreach ((_, var name, _, _, _, _, _, _, _) in simStateFields)
-            {
-                builder.Append($@"
-                {name} = s.{name},");
-            }
+            (");
+            builder.Append(string.Join(",", simStateFields.Select(item => $@"
+                s.{item.name}")));
             builder.Append(@"
-            };
+            );
 ");
 
             builder.Append(@"
@@ -60,6 +57,22 @@ namespace FlightRecorder.Client
             };
 ");
 
+            // Constructors
+            builder.Append(@"
+        public SimState(");
+            builder.Append(string.Join(", ", simStateFields.Select(item => $"{item.type} {item.name}")));
+            builder.Append(@")
+        {");
+            foreach ((var type, var name, _, _, _, _, _, _, _) in simStateFields)
+            {
+                builder.Append($@"
+            this.{name} = {name};");
+            }
+            builder.Append(@"
+        }
+");
+
+            // Properties
             foreach ((var type, var name, _, _, _, _, _, _, _) in simStateFields)
             {
                 builder.Append($@"
@@ -111,7 +124,7 @@ namespace FlightRecorder.Client
     }
 }");
 
-            context.AddSource("ViewModelGenerator", SourceText.From(builder.ToString(), Encoding.UTF8));
+            context.AddSource("ModelGenerator", SourceText.From(builder.ToString(), Encoding.UTF8));
         }
     }
 }

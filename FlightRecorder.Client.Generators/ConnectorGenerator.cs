@@ -92,7 +92,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
                     // TODO: warning if setBy is empty
                     builder.Append($@"
             logger.LogDebug(""Register event {{eventName}} to ID {{eventID}}"", ""{setBy}"", {eventId});
-            simconnect.MapClientEventToSimEvent((EVENTS){eventId}, ""{setBy}"");");
+            simconnect?.MapClientEventToSimEvent((EVENTS){eventId}, ""{setBy}"");");
                     eventId++;
                 }
             }
@@ -112,7 +112,7 @@ namespace FlightRecorder.Client.SimConnectMSFS
             if (current.{name} != expected.{name})
             {{
                 logger.LogDebug(""Trigger event {{eventName}}"", ""{setBy}"");
-                simconnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, (EVENTS){eventId}, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+                simconnect?.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, (EVENTS){eventId}, 0, GROUPS.GENERIC, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
             }}
 ");
                     eventId++;
