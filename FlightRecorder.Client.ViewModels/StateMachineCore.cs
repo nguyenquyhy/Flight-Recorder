@@ -11,7 +11,7 @@ namespace FlightRecorder.Client
 {
     public abstract class StateMachineCore
     {
-        public event EventHandler<StateChangedEventArgs> StateChanged;
+        public event EventHandler<StateChangedEventArgs>? StateChanged;
 
         protected readonly ILogger logger;
         protected readonly IDialogLogic dialogLogic;
@@ -23,7 +23,7 @@ namespace FlightRecorder.Client
         /// This is to store the events that trigger during another long running transition,
         /// so that if the long running transition is reverted, we can replay those events.
         /// </summary>
-        private List<Event> transitioningEvents = null;
+        private List<Event>? transitioningEvents = null;
 
         public State CurrentState { get; private set; } = State.Start;
 
@@ -52,7 +52,7 @@ namespace FlightRecorder.Client
 
                 if (transition.ViaEvents != null)
                 {
-                    return await ExecuteMultipleTransitionsAsync(e, transition.ViaEvents, transition.WaitForEvents, transition.ShouldRevertOnError, transition.ErrorMessage);
+                    return await ExecuteMultipleTransitionsAsync(e, transition.ViaEvents, transition.WaitForEvents, transition.RevertErrorMessage);
                 }
                 else
                 {
@@ -102,8 +102,8 @@ namespace FlightRecorder.Client
         /// <param name="originatingEvent">The event that is triggered externally</param>
         /// <param name="viaEvents">The events that state machine should triggered instead</param>
         /// <param name="waitForEvents">Some events in the viaEvents list should not be triggered by the state machine itself. Instead, the state machine should wait for the event to be triggered externally before continue with the viaEvents list.</param>
-        /// <returns></returns>
-        protected async Task<bool> ExecuteMultipleTransitionsAsync(Event originatingEvent, Event[] viaEvents, Event[] waitForEvents, bool revertOnError, string errorMessage)
+        /// <param name="revertErrorMessage">Revert state if there is a an error and show the error message</param>
+        protected async Task<bool> ExecuteMultipleTransitionsAsync(Event originatingEvent, Event[] viaEvents, Event[]? waitForEvents, string? revertErrorMessage)
         {
             var success = true;
 
@@ -168,7 +168,7 @@ namespace FlightRecorder.Client
 
                         if (!success)
                         {
-                            if (revertOnError)
+                            if (revertErrorMessage != null)
                             {
                                 logger.LogInformation("Transition from {state} by {via} was cancelled! Revert back to orignal state {original}.", oldState, via, originalState);
                                 await RevertStateAsync(originalState, originatingEvent, localTransitioningEvents);
@@ -179,11 +179,11 @@ namespace FlightRecorder.Client
                     }
                 }
             }
-            catch (Exception ex) when (revertOnError)
+            catch (Exception ex) when (revertErrorMessage != null)
             {
                 logger.LogError(ex, "Cannot complete the transition from {state} by {event}! Revert back to orignal state.", originalState, originatingEvent);
                 await RevertStateAsync(originalState, originatingEvent, localTransitioningEvents);
-                dialogLogic.Error(errorMessage);
+                dialogLogic.Error(revertErrorMessage);
             }
             finally
             {

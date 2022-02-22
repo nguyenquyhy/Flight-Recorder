@@ -61,17 +61,17 @@ namespace FlightRecorder.Client
             connector.Closed -= Connector_Closed;
         }
 
-        private async void Connector_Initialized(object sender, EventArgs e)
+        private async void Connector_Initialized(object? sender, EventArgs e)
         {
             await StateMachine.TransitAsync(Event.Connect);
         }
 
-        private async void Connector_Closed(object sender, EventArgs e)
+        private async void Connector_Closed(object? sender, EventArgs e)
         {
             await StateMachine.TransitAsync(Event.Disconnect);
         }
 
-        private async void ReplayFinished(object sender, EventArgs e)
+        private async void ReplayFinished(object? sender, EventArgs e)
         {
             await StateMachine.TransitAsync(Event.Stop);
         }

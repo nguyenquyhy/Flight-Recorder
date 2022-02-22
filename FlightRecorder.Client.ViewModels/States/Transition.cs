@@ -14,10 +14,9 @@ namespace FlightRecorder.Client.ViewModels.States
         public State ToState { get; init; }
         public Event ByEvent { get; init; }
         public ImmutableList<object> Actions { get; init; } = ImmutableList<object>.Empty;
-        public Event[] ViaEvents { get; init; }
-        public Event[] WaitForEvents { get; init; }
-        public bool ShouldRevertOnError { get; set; }
-        public string ErrorMessage { get; set; }
+        public Event[]? ViaEvents { get; init; }
+        public Event[]? WaitForEvents { get; init; }
+        public string? RevertErrorMessage { get; set; }
 
         public Transition To(State state) => this with { ToState = state };
 
@@ -34,7 +33,7 @@ namespace FlightRecorder.Client.ViewModels.States
 
         public Transition WaitFor(params Event[] events) => this with { WaitForEvents = events };
 
-        public Transition RevertOnError(string errorMessage) => this with { ShouldRevertOnError = true, ErrorMessage = errorMessage };
+        public Transition RevertOnError(string errorMessage) => this with { RevertErrorMessage = errorMessage };
 
         public async Task<State?> ExecuteAsync()
         {

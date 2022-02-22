@@ -21,7 +21,7 @@ namespace FlightRecorder.Client.Logics
         void Unfreeze();
         void NotifyPosition(AircraftPositionStruct? value);
 
-        void FromData(string fileName, SavedData data);
+        void FromData(string? fileName, SavedData data);
         SavedData ToData(string clientVersion);
     }
 }

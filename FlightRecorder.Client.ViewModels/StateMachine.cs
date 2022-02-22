@@ -62,7 +62,16 @@ namespace FlightRecorder.Client
             this.viewModel = viewModel;
             this.recorderLogic = recorderLogic;
             this.replayLogic = replayLogic;
-            this.currentVersion = System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString();
+            var version = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version?.ToString();
+            if (version == null)
+            {
+                logger.LogWarning("Cannot get assembly version. Revert to 0.0.0.0.");
+                this.currentVersion = "0.0.0.0";
+            }
+            else
+            {
+                this.currentVersion = version;
+            }
 
             InitializeStateMachine();
         }

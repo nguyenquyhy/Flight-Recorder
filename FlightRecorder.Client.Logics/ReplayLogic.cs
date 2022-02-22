@@ -257,7 +257,7 @@ namespace FlightRecorder.Client.Logics
             currentPosition = value;
         }
 
-        public void FromData(string fileName, SavedData data)
+        public void FromData(string? fileName, SavedData data)
         {
             startMilliseconds = data.StartTime;
             endMilliseconds = data.EndTime;
