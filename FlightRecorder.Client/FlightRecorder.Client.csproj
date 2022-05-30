@@ -16,6 +16,9 @@
     <None Include="C:\MSFS SDK\SimConnect SDK\lib\SimConnect.dll" Link="SimConnect.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+	  <None Include="C:\MSFS SDK\SimConnect SDK\lib\SimConnect.lib" Link="SimConnect.lib">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -35,6 +38,18 @@
     <ProjectReference Include="..\FlightRecorder.Client.Logics\FlightRecorder.Client.Logics.csproj" />
     <ProjectReference Include="..\FlightRecorder.Client.SimConnectMSFS\FlightRecorder.Client.SimConnectMSFS.csproj" />
     <ProjectReference Include="..\FlightRecorder.Client.ViewModels\FlightRecorder.Client.ViewModels.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="msvcp140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="vcruntime140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="vcruntime140_1.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
