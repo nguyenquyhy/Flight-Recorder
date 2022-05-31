@@ -48,7 +48,7 @@ namespace FlightRecorder.Client
         public static SimStateStruct ToStruct(SimState s)
             => new SimStateStruct
             {");
-            foreach ((_, var name, _, _, _, _, _, _, _) in simStateFields)
+            foreach ((_, var name, _, _, _, _, _, _, _, _) in simStateFields)
             {
                 builder.Append($@"
                 {name} = s.{name},");
@@ -63,7 +63,7 @@ namespace FlightRecorder.Client
             builder.Append(string.Join(", ", simStateFields.Select(item => $"{item.type} {item.name}")));
             builder.Append(@")
         {");
-            foreach ((var type, var name, _, _, _, _, _, _, _) in simStateFields)
+            foreach ((var type, var name, _, _, _, _, _, _, _, _) in simStateFields)
             {
                 builder.Append($@"
             this.{name} = {name};");
@@ -73,7 +73,7 @@ namespace FlightRecorder.Client
 ");
 
             // Properties
-            foreach ((var type, var name, _, _, _, _, _, _, _) in simStateFields)
+            foreach ((var type, var name, _, _, _, _, _, _, _, _) in simStateFields)
             {
                 builder.Append($@"
         public {type} {name} {{ get; set; }}");
@@ -89,7 +89,7 @@ namespace FlightRecorder.Client
         public static AircraftPosition FromStruct(AircraftPositionStruct s)
             => new AircraftPosition
             {");
-            foreach ((_, var name, _, _, _, _, _, _, _) in aircraftFields)
+            foreach ((_, var name, _, _, _, _, _, _, _, _) in aircraftFields)
             {
                 builder.Append($@"
                 {name} = s.{name},");
@@ -102,10 +102,19 @@ namespace FlightRecorder.Client
         public static AircraftPositionStruct ToStruct(AircraftPosition s)
             => new AircraftPositionStruct
             {");
-            foreach ((_, var name, _, _, _, _, _, _, _) in aircraftFields)
+            foreach ((_, var name, _, _, _, _, _, _, _, var defaultField) in aircraftFields)
             {
-                builder.Append($@"
+
+                if (defaultField != null)
+                {
+                    builder.Append($@"
+                {name} = s.{name} ?? s.{defaultField},");
+                }
+                else
+                {
+                    builder.Append($@"
                 {name} = s.{name},");
+                }
             }
             builder.Append(@"
             };
@@ -114,10 +123,10 @@ namespace FlightRecorder.Client
             builder.Append(@"
         public long Milliseconds { get; set; }");
 
-            foreach ((var type, var name, _, _, _, _, _, _, _) in aircraftFields)
+            foreach ((var type, var name, _, _, _, _, _, _, _, var defaultField) in aircraftFields)
             {
                 builder.Append($@"
-        public {type} {name} {{ get; set; }}");
+        public {CalculateType(type, defaultField)} {name} {{ get; set; }}");
             }
 
             builder.Append(@"
@@ -126,5 +135,7 @@ namespace FlightRecorder.Client
 
             context.AddSource("ModelGenerator", SourceText.From(builder.ToString(), Encoding.UTF8));
         }
+
+        private string CalculateType(string type, string defaultField) => (defaultField == null || type == "string") ? type : $"{type}?";
     }
 }

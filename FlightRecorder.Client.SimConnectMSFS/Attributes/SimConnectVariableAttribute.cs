@@ -13,6 +13,7 @@ namespace FlightRecorder.Client
         public string? SetByEvent { get; set; }
         public double Minimum { get; set; }
         public double Maximum { get; set; }
+        public string? Default { get; set; }
     }
 
     public enum SetType

@@ -14,7 +14,18 @@ namespace FlightRecorder.Client.Generators
         protected const int SetTypeEvent = 1;
         protected const int SetTypeNone = 2;
 
-        protected IEnumerable<(string type, string name, string variable, string unit, int dataType, int? setType, string setEventName, double min, double max)>
+        protected IEnumerable<(
+            string type, 
+            string name, 
+            string variable, 
+            string unit, 
+            int dataType, 
+            int? setType, 
+            string setEventName, 
+            double min, 
+            double max,
+            string defaultField
+        )>
             GetSimConnectFields(GeneratorExecutionContext context, string structName)
         {
             //var libraryContext = context.Compilation.References.FirstOrDefault(r => r.Display == "FlightRecorder.Client.SimConnectMSFS") as CompilationReference;
@@ -47,7 +58,8 @@ namespace FlightRecorder.Client.Generators
                                     var setBy = args.Any(args => args.Key == "SetByEvent") ? args.First(arg => arg.Key == "SetByEvent").Value.Value as string : null;
                                     var min = args.Any(args => args.Key == "Minimum") ? args.First(arg => arg.Key == "Minimum").Value.Value as double? : null;
                                     var max = args.Any(args => args.Key == "Maximum") ? args.First(arg => arg.Key == "Maximum").Value.Value as double? : null;
-                                    yield return (predefinedType.Keyword.ValueText, field.Declaration.Variables[0].Identifier.ValueText, variable, unit, type.Value, setType, setBy, min ?? 0, max ?? 0);
+                                    var defaultField = args.Any(args => args.Key == "Default") ? args.First(arg => arg.Key == "Default").Value.Value as string : null;
+                                    yield return (predefinedType.Keyword.ValueText, field.Declaration.Variables[0].Identifier.ValueText, variable, unit, type.Value, setType, setBy, min ?? 0, max ?? 0, defaultField);
                                 }
                             }
                         }

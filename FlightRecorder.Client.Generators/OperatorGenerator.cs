@@ -27,7 +27,7 @@ namespace FlightRecorder.Client.Generators
             AddOperator(context, fields);
         }
 
-        private static void AddSetStruct(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent, double min, double max)> fields)
+        private static void AddSetStruct(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent, double min, double max, string defaultField)> fields)
         {
             var builder = new StringBuilder();
             builder.Append(@"
@@ -39,7 +39,7 @@ namespace FlightRecorder.Client
     public partial struct AircraftPositionSetStruct
     {");
 
-            foreach ((var type, var name, _, _, _, var setType, _, _, _) in fields)
+            foreach ((var type, var name, _, _, _, var setType, _, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -55,7 +55,7 @@ namespace FlightRecorder.Client
             context.AddSource("SetStruct", SourceText.From(builder.ToString(), Encoding.UTF8));
         }
 
-        private static void AddOperator(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent, double min, double max)> fields)
+        private static void AddOperator(GeneratorExecutionContext context, List<(string type, string name, string variable, string unit, int dataType, int? setType, string setByEvent, double min, double max, string defaultField)> fields)
         {
             var builder = new StringBuilder();
             builder.Append(@"
@@ -71,7 +71,7 @@ namespace FlightRecorder.Client
         public static partial AircraftPositionSetStruct ToSet(AircraftPositionStruct variables)
             => new AircraftPositionSetStruct
             {");
-            foreach ((_, var name, _, _, _, var setType, _, _, _) in fields)
+            foreach ((_, var name, _, _, _, var setType, _, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -87,7 +87,7 @@ namespace FlightRecorder.Client
         public static AircraftPositionSetStruct Add(AircraftPositionSetStruct position1, AircraftPositionSetStruct position2)
             => new AircraftPositionSetStruct
             {");
-            foreach ((_, var name, _, _, _, var setType, _, _, _) in fields)
+            foreach ((_, var name, _, _, _, var setType, _, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -103,7 +103,7 @@ namespace FlightRecorder.Client
         public static AircraftPositionSetStruct Scale(AircraftPositionSetStruct position, double factor)
             => new AircraftPositionSetStruct
             {");
-            foreach ((var type, var name, _, _, _, var setType, _, _, _) in fields)
+            foreach ((var type, var name, _, _, _, var setType, _, _, _, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
@@ -135,7 +135,7 @@ namespace FlightRecorder.Client
         public static AircraftPositionSetStruct Interpolate(AircraftPositionSetStruct position1, AircraftPositionSetStruct position2, double interpolation)
             => new AircraftPositionSetStruct
             {");
-            foreach ((var type, var name, _, _, _, var setType, _, var min, var max) in fields)
+            foreach ((var type, var name, _, _, _, var setType, _, var min, var max, _) in fields)
             {
                 if (setType == null || setType == SetTypeDefault)
                 {
