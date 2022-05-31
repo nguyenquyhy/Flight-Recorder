@@ -245,8 +245,9 @@ namespace FlightRecorder.Client
                         connector.Initialize(Handle);
                         break;
                     }
-                    catch (BadImageFormatException)
+                    catch (BadImageFormatException ex)
                     {
+                        logger.LogError(ex, "Cannot initialize SimConnect!");
                         MessageBox.Show("Cannot initialize SimConnect!");
                         viewModel.SimConnectState = SimConnectState.Failed;
                         break;
