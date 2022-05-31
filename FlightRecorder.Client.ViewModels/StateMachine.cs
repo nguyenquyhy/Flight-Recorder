@@ -31,6 +31,7 @@ namespace FlightRecorder.Client
             Save,
             Load,
             LoadAI,
+            RestoreCrashData,
             Exit
         }
 
@@ -70,6 +71,8 @@ namespace FlightRecorder.Client
         private void InitializeStateMachine()
         {
             Register(Transition.From(State.Start).To(State.DisconnectedEmpty).By(Event.StartUp).ThenUpdate(viewModel));
+
+            Register(Transition.From(State.DisconnectedEmpty).To(State.DisconnectedUnsaved).By(Event.RestoreCrashData).ThenUpdate(viewModel));
 
             Register(Transition.From(State.DisconnectedEmpty).To(State.IdleEmpty).By(Event.Connect).Then(Connect).ThenUpdate(viewModel));
             Register(Transition.From(State.DisconnectedEmpty).To(State.LoadingDisconnected).By(Event.RequestLoading).ThenUpdate(viewModel));

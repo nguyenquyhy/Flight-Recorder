@@ -21,6 +21,7 @@ namespace FlightRecorder.Client
     {
         private readonly ILogger<MainWindow> logger;
         private readonly IConnector connector;
+        private readonly ICrashLogic crashLogic;
         private readonly DrawingLogic drawingLogic;
         private readonly ExportLogic exportLogic;
         private readonly WindowFactory windowFactory;
@@ -32,6 +33,7 @@ namespace FlightRecorder.Client
 
         public MainWindow(ILogger<MainWindow> logger,
             IConnector connector,
+            ICrashLogic crashLogic,
             DrawingLogic drawingLogic,
             ExportLogic exportLogic,
             VersionLogic versionLogic,
@@ -43,6 +45,7 @@ namespace FlightRecorder.Client
 
             this.logger = logger;
             this.connector = connector;
+            this.crashLogic = crashLogic;
             this.drawingLogic = drawingLogic;
             this.exportLogic = exportLogic;
             this.windowFactory = windowFactory;
@@ -73,6 +76,8 @@ namespace FlightRecorder.Client
         {
             await base.Window_LoadedAsync(sender, e);
 
+            await crashLogic.LoadDataAsync(stateMachine, replayLogic);
+            
             // Create an event handle for the WPF window to listen for SimConnect events
             Handle = new WindowInteropHelper(sender as Window).Handle; // Get handle of main WPF Window
             var HandleSource = HwndSource.FromHwnd(Handle); // Get source of handle in order to add event handlers to it
