@@ -279,7 +279,15 @@ public partial class MainWindow : BaseWindow
     {
         if (sender is TextBlock textBlock)
         {
-            Clipboard.SetText(textBlock.Text);
+            try
+            {
+                Clipboard.SetText(textBlock.Text);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Cannot access clipboard!");
+                MessageBox.Show("Cannot access clipboard!", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 
