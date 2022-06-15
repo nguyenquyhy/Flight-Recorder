@@ -231,7 +231,10 @@
 
             <Grid Margin="0,10,0,0">
                 <Button Content="{Binding ShowData, Converter={StaticResource BooleanToStringConverter}, ConverterParameter='Hide Data|Show Data'}" d:Content="Hide Data" Width="80" HorizontalAlignment="Left" Click="ButtonShowData_Click" />
-                <ToggleButton Content="Stay on top" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="80" Checked="ToggleButtonTopmost_Checked" Unchecked="ToggleButtonTopmost_Unchecked" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right">
+                    <Button Content="Shortcut keys" Width="80" Click="ButtonShortcutKeys_Click" />
+                    <ToggleButton Content="Stay on top" Width="80" Checked="ToggleButtonTopmost_Checked" Unchecked="ToggleButtonTopmost_Unchecked" />
+                </StackPanel>
             </Grid>
             <Grid Visibility="{Binding ShowData, Converter={StaticResource TrueToVisibleConverter}}" Margin="0,5,0,0">
                 <Grid.Resources>

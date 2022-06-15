@@ -1,0 +1,56 @@
+﻿<Window x:Class="FlightRecorder.Client.ShortcutKeysWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FlightRecorder.Client"
+        mc:Ignorable="d"
+        Loaded="Window_Loaded"
+        Title="Shortcut Keys" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" Height="220" Width="350">
+    <Grid Margin="10">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <CheckBox x:Name="IsShortcutKeysEnabled" Margin="0,2,4,4" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" />
+                <TextBlock Text="Enable shortcut keys" />
+            </StackPanel>
+            <TextBlock Text="* Flight Recorder must be restarted to apply new setting." TextWrapping="Wrap" FontStyle="Italic" />
+            <Grid Margin="0,20,0,0">
+                <Grid.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Margin" Value="0,0,10,0" />
+                    </Style>
+                </Grid.Resources>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl + Shift + Alt + Home" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="Record" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl + Shift + Alt + End" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="Stop Recording" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl + Shift + Alt + R" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="Replay" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl + Shift + Alt + S" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="Stop Replay" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl + Shift + Alt + &lt;" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="Pause" />
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="Ctrl + Shift + Alt + &gt;" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="Resume" />
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Window>

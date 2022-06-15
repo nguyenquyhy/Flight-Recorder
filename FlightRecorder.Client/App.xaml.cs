@@ -110,9 +110,11 @@ public partial class App : Application
         services.AddSingleton<ExportLogic>();
         services.AddSingleton<IDialogLogic, DialogLogic>();
         services.AddSingleton<WindowFactory>();
+        services.AddSingleton<ISettingsLogic, FileSettingsLogic>();
 
         services.AddScoped<Orchestrator>();
         services.AddScoped<StateMachine>();
+        services.AddScoped<ShortcutKeyLogic>();
 
         // NOTE: For recorder, we leave it as singleton as it is supported only on main windows (not AI) and to allow saving on crash.
         services.AddSingleton<IRecorderLogic, RecorderLogic>();
@@ -122,6 +124,7 @@ public partial class App : Application
         services.AddScoped<MainViewModel>();
         services.AddScoped<MainWindow>();
         services.AddScoped<AIWindow>();
+        services.AddScoped<ShortcutKeysWindow>();
 
         services.AddTransient<DrawingLogic>();
         services.AddTransient<ImageLogic>();

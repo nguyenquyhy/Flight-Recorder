@@ -1,5 +1,6 @@
 ﻿using FlightRecorder.Client.Logics;
 using FlightRecorder.Client.SimConnectMSFS;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System;
@@ -12,275 +13,286 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 
-namespace FlightRecorder.Client
+namespace FlightRecorder.Client;
+
+/// <summary>
+/// Interaction logic for MainWindow.xaml
+/// </summary>
+public partial class MainWindow : BaseWindow
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : BaseWindow
+    private readonly ILogger<MainWindow> logger;
+    private readonly IConnector connector;
+    private readonly ICrashLogic crashLogic;
+    private readonly DrawingLogic drawingLogic;
+    private readonly ExportLogic exportLogic;
+    private readonly ShortcutKeyLogic shortcutKeyLogic;
+    private readonly WindowFactory windowFactory;
+    private readonly IRecorderLogic recorderLogic;
+
+    private readonly string currentVersion;
+
+    private IntPtr Handle;
+
+    public MainWindow(ILogger<MainWindow> logger,
+        IConnector connector,
+        ICrashLogic crashLogic,
+        DrawingLogic drawingLogic,
+        ExportLogic exportLogic,
+        VersionLogic versionLogic,
+        ShortcutKeyLogic shortcutKeyLogic,
+        Orchestrator orchestrator,
+        WindowFactory windowFactory)
+        : base(orchestrator.ThreadLogic, orchestrator.StateMachine, orchestrator.ViewModel, orchestrator.ReplayLogic)
     {
-        private readonly ILogger<MainWindow> logger;
-        private readonly IConnector connector;
-        private readonly ICrashLogic crashLogic;
-        private readonly DrawingLogic drawingLogic;
-        private readonly ExportLogic exportLogic;
-        private readonly WindowFactory windowFactory;
-        private readonly IRecorderLogic recorderLogic;
+        InitializeComponent();
 
-        private readonly string currentVersion;
+        this.logger = logger;
+        this.connector = connector;
+        this.crashLogic = crashLogic;
+        this.drawingLogic = drawingLogic;
+        this.exportLogic = exportLogic;
+        this.shortcutKeyLogic = shortcutKeyLogic;
+        this.windowFactory = windowFactory;
+        this.recorderLogic = orchestrator.RecorderLogic;
 
-        private IntPtr Handle;
+        stateMachine.StateChanged += StateMachine_StateChanged;
 
-        public MainWindow(ILogger<MainWindow> logger,
-            IConnector connector,
-            ICrashLogic crashLogic,
-            DrawingLogic drawingLogic,
-            ExportLogic exportLogic,
-            VersionLogic versionLogic,
-            Orchestrator orchestrator,
-            WindowFactory windowFactory)
-            : base(orchestrator.ThreadLogic, orchestrator.StateMachine, orchestrator.ViewModel, orchestrator.ReplayLogic)
+        connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
+        connector.Closed += Connector_Closed;
+
+        DataContext = viewModel;
+
+        currentVersion = versionLogic.GetVersion();
+        Title += " " + currentVersion;
+    }
+
+    private void StateMachine_StateChanged(object? sender, StateChangedEventArgs e)
+    {
+        if (e.By == StateMachine.Event.Stop)
         {
-            InitializeComponent();
-
-            this.logger = logger;
-            this.connector = connector;
-            this.crashLogic = crashLogic;
-            this.drawingLogic = drawingLogic;
-            this.exportLogic = exportLogic;
-            this.windowFactory = windowFactory;
-            this.recorderLogic = orchestrator.RecorderLogic;
-
-            stateMachine.StateChanged += StateMachine_StateChanged;
-
-            connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
-            connector.Closed += Connector_Closed;
-
-            DataContext = viewModel;
-
-            currentVersion = versionLogic.GetVersion();
-            Title += " " + currentVersion;
+            // Stop recording
+            drawingLogic.ClearCache();
+            Draw();
         }
+    }
 
-        private void StateMachine_StateChanged(object? sender, StateChangedEventArgs e)
+    protected async override Task Window_LoadedAsync(object sender, RoutedEventArgs e)
+    {
+        await base.Window_LoadedAsync(sender, e);
+
+        await crashLogic.LoadDataAsync(stateMachine, replayLogic);
+        
+        // Create an event handle for the WPF window to listen for SimConnect events
+        Handle = new WindowInteropHelper(sender as Window).Handle; // Get handle of main WPF Window
+        var HandleSource = HwndSource.FromHwnd(Handle); // Get source of handle in order to add event handlers to it
+        HandleSource.AddHook(HandleHook);
+        InitializeConnector();
+        await shortcutKeyLogic.RegisterAsync(Handle);
+    }
+
+    private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (stateMachine.CurrentState != StateMachine.State.End // Already exiting
+            && stateMachine.CurrentState != StateMachine.State.Start // Most likely due to single instance enforcement
+            )
         {
-            if (e.By == StateMachine.Event.Stop)
+            e.Cancel = true;
+            if (await stateMachine.TransitAsync(StateMachine.Event.Exit))
             {
-                // Stop recording
-                drawingLogic.ClearCache();
-                Draw();
-            }
-        }
-
-        protected async override Task Window_LoadedAsync(object sender, RoutedEventArgs e)
-        {
-            await base.Window_LoadedAsync(sender, e);
-
-            await crashLogic.LoadDataAsync(stateMachine, replayLogic);
-            
-            // Create an event handle for the WPF window to listen for SimConnect events
-            Handle = new WindowInteropHelper(sender as Window).Handle; // Get handle of main WPF Window
-            var HandleSource = HwndSource.FromHwnd(Handle); // Get source of handle in order to add event handlers to it
-            HandleSource.AddHook(HandleHook);
-            InitializeConnector();
-        }
-
-        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            if (stateMachine.CurrentState != StateMachine.State.End // Already exiting
-                && stateMachine.CurrentState != StateMachine.State.Start // Most likely due to single instance enforcement
-                )
-            {
-                e.Cancel = true;
-                if (await stateMachine.TransitAsync(StateMachine.Event.Exit))
+                if (stateMachine.CurrentState == StateMachine.State.End)
                 {
-                    if (stateMachine.CurrentState == StateMachine.State.End)
-                    {
-                        Application.Current?.Shutdown();
-                    }
+                    shortcutKeyLogic.Unregister(Handle);
+                    Application.Current?.Shutdown();
                 }
             }
         }
+    }
 
-        private IntPtr HandleHook(IntPtr hWnd, int message, IntPtr wParam, IntPtr lParam, ref bool isHandled)
+    private IntPtr HandleHook(IntPtr hWnd, int message, IntPtr wParam, IntPtr lParam, ref bool isHandled)
+    {
+        try
+        {
+            isHandled =
+                connector.HandleWindowsEvent(message) ||
+                shortcutKeyLogic.HandleWindowsEvent(message, wParam, lParam);
+            return IntPtr.Zero;
+        }
+        catch (BadImageFormatException)
+        {
+            return IntPtr.Zero;
+        }
+    }
+
+    private void Connector_AircraftPositionUpdated(object? sender, AircraftPositionUpdatedEventArgs e)
+    {
+        recorderLogic.NotifyPosition(e.Position);
+        replayLogic.NotifyPosition(e.Position);
+
+        Dispatcher.Invoke(() =>
+        {
+            viewModel.AircraftPosition = AircraftPosition.FromStruct(e.Position);
+        });
+    }
+
+    private void Connector_Closed(object? sender, EventArgs e)
+    {
+        logger.LogDebug("Start reconnecting...");
+        InitializeConnector();
+    }
+
+    private async void ButtonRecord_Click(object sender, RoutedEventArgs e)
+    {
+        await stateMachine.TransitAsync(StateMachine.Event.Record);
+    }
+
+    private async void ButtonStop_Click(object sender, RoutedEventArgs e)
+    {
+        await stateMachine.TransitAsync(StateMachine.Event.Stop);
+    }
+
+    private void ButtonReplayAI_Click(object sender, RoutedEventArgs e)
+    {
+        var window = CreateAIWindow();
+        window.Owner = this;
+        window.ShowInTaskbar = false;
+        window.ShowWithData(viewModel.SimState?.AircraftTitle, viewModel.FileName, replayLogic.ToData(currentVersion));
+    }
+
+    private async void ButtonSave_Click(object sender, RoutedEventArgs e)
+    {
+        await stateMachine.TransitAsync(StateMachine.Event.Save);
+    }
+
+    private async void ButtonExport_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SaveFileDialog
+        {
+            FileName = $"Export {DateTime.Now:yyyy-MM-dd-HH-mm}.csv",
+            Filter = "CSV (for Excel)|*.csv"
+        };
+        if (dialog.ShowDialog() == true)
         {
             try
             {
-                connector.HandleSimConnectEvents(message, ref isHandled);
-                return IntPtr.Zero;
+                await exportLogic.ExportAsync(dialog.FileName, replayLogic.Records.Select(o =>
+                {
+                    var result = AircraftPosition.FromStruct(o.position);
+                    result.Milliseconds = o.milliseconds;
+                    return result;
+                }));
+
+                logger.LogDebug("Save file into {fileName}", dialog.FileName);
             }
-            catch (BadImageFormatException)
+            catch (IOException)
             {
-                return IntPtr.Zero;
+                MessageBox.Show("Flight Recorder cannot write the file to disk.\nPlease make sure the folder is accessible by Flight Recorder, and you are not overwriting a locked file.", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+    }
 
-        private void Connector_AircraftPositionUpdated(object? sender, AircraftPositionUpdatedEventArgs e)
+    private async void ButtonLoad_Click(object sender, RoutedEventArgs e)
+    {
+        if (await stateMachine.TransitAsync(StateMachine.Event.Load))
         {
-            recorderLogic.NotifyPosition(e.Position);
-            replayLogic.NotifyPosition(e.Position);
-
-            Dispatcher.Invoke(() =>
-            {
-                viewModel.AircraftPosition = AircraftPosition.FromStruct(e.Position);
-            });
+            drawingLogic.ClearCache();
+            Draw();
         }
+    }
 
-        private void Connector_Closed(object? sender, EventArgs e)
+    private void ButtonLoadAI_Click(object sender, RoutedEventArgs e)
+    {
+        var window = CreateAIWindow();
+        window.Owner = this;
+        window.ShowInTaskbar = false;
+        window.ShowWithData(viewModel.SimState?.AircraftTitle);
+    }
+
+    private void ButtonShowData_Click(object sender, RoutedEventArgs e)
+    {
+        viewModel.ShowData = !viewModel.ShowData;
+        Height = viewModel.ShowData ? 472 : 307;
+    }
+
+    private void MenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as MenuItem)?.Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
         {
-            logger.LogDebug("Start reconnecting...");
-            InitializeConnector();
+            ButtonSpeed.Content = header;
+            replayLogic.ChangeRate(rate);
         }
+    }
 
-        private async void ButtonRecord_Click(object sender, RoutedEventArgs e)
-        {
-            await stateMachine.TransitAsync(StateMachine.Event.Record);
-        }
+    private void ToggleButtonTopmost_Checked(object sender, RoutedEventArgs e)
+    {
+        Topmost = true;
+    }
 
-        private async void ButtonStop_Click(object sender, RoutedEventArgs e)
-        {
-            await stateMachine.TransitAsync(StateMachine.Event.Stop);
-        }
+    private void ToggleButtonTopmost_Unchecked(object sender, RoutedEventArgs e)
+    {
+        Topmost = false;
+    }
 
-        private void ButtonReplayAI_Click(object sender, RoutedEventArgs e)
-        {
-            var window = CreateAIWindow();
-            window.Owner = this;
-            window.ShowInTaskbar = false;
-            window.ShowWithData(viewModel.SimState?.AircraftTitle, viewModel.FileName, replayLogic.ToData(currentVersion));
-        }
+    #region Single Instance
 
-        private async void ButtonSave_Click(object sender, RoutedEventArgs e)
-        {
-            await stateMachine.TransitAsync(StateMachine.Event.Save);
-        }
+    public void RestoreWindow()
+    {
+        WindowState = WindowState.Normal;
+        Activate();
+    }
 
-        private async void ButtonExport_Click(object sender, RoutedEventArgs e)
+    #endregion
+
+    private void InitializeConnector()
+    {
+        Dispatcher.Invoke(async () =>
         {
-            var dialog = new SaveFileDialog
-            {
-                FileName = $"Export {DateTime.Now:yyyy-MM-dd-HH-mm}.csv",
-                Filter = "CSV (for Excel)|*.csv"
-            };
-            if (dialog.ShowDialog() == true)
+            while (true)
             {
                 try
                 {
-                    await exportLogic.ExportAsync(dialog.FileName, replayLogic.Records.Select(o =>
-                    {
-                        var result = AircraftPosition.FromStruct(o.position);
-                        result.Milliseconds = o.milliseconds;
-                        return result;
-                    }));
-
-                    logger.LogDebug("Save file into {fileName}", dialog.FileName);
+                    connector.Initialize(Handle);
+                    break;
                 }
-                catch (IOException)
+                catch (BadImageFormatException ex)
                 {
-                    MessageBox.Show("Flight Recorder cannot write the file to disk.\nPlease make sure the folder is accessible by Flight Recorder, and you are not overwriting a locked file.", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
+                    logger.LogError(ex, "Cannot initialize SimConnect!");
+                    MessageBox.Show("Cannot initialize SimConnect!");
+                    viewModel.SimConnectState = SimConnectState.Failed;
+                    break;
                 }
-            }
-        }
-
-        private async void ButtonLoad_Click(object sender, RoutedEventArgs e)
-        {
-            if (await stateMachine.TransitAsync(StateMachine.Event.Load))
-            {
-                drawingLogic.ClearCache();
-                Draw();
-            }
-        }
-
-        private void ButtonLoadAI_Click(object sender, RoutedEventArgs e)
-        {
-            var window = CreateAIWindow();
-            window.Owner = this;
-            window.ShowInTaskbar = false;
-            window.ShowWithData(viewModel.SimState?.AircraftTitle);
-        }
-
-        private void ButtonShowData_Click(object sender, RoutedEventArgs e)
-        {
-            viewModel.ShowData = !viewModel.ShowData;
-            Height = viewModel.ShowData ? 472 : 307;
-        }
-
-        private void MenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as MenuItem)?.Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
-            {
-                ButtonSpeed.Content = header;
-                replayLogic.ChangeRate(rate);
-            }
-        }
-
-        private void ToggleButtonTopmost_Checked(object sender, RoutedEventArgs e)
-        {
-            Topmost = true;
-        }
-
-        private void ToggleButtonTopmost_Unchecked(object sender, RoutedEventArgs e)
-        {
-            Topmost = false;
-        }
-
-        #region Single Instance
-
-        public void RestoreWindow()
-        {
-            WindowState = WindowState.Normal;
-            Activate();
-        }
-
-        #endregion
-
-        private void InitializeConnector()
-        {
-            Dispatcher.Invoke(async () =>
-            {
-                while (true)
+                catch (COMException ex)
                 {
-                    try
-                    {
-                        connector.Initialize(Handle);
-                        break;
-                    }
-                    catch (BadImageFormatException ex)
-                    {
-                        logger.LogError(ex, "Cannot initialize SimConnect!");
-                        MessageBox.Show("Cannot initialize SimConnect!");
-                        viewModel.SimConnectState = SimConnectState.Failed;
-                        break;
-                    }
-                    catch (COMException ex)
-                    {
-                        logger.LogTrace(ex, "SimConnect error.");
-                        viewModel.SimConnectState = SimConnectState.NotConnected;
-                        await Task.Delay(5000).ConfigureAwait(true);
-                    }
+                    logger.LogTrace(ex, "SimConnect error.");
+                    viewModel.SimConnectState = SimConnectState.NotConnected;
+                    await Task.Delay(5000).ConfigureAwait(true);
                 }
-            });
-        }
-
-        protected override void Draw()
-        {
-            drawingLogic.Draw(replayLogic.Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
-        }
-
-        private void TextBlock_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (sender is TextBlock textBlock)
-            {
-                Clipboard.SetText(textBlock.Text);
             }
-        }
+        });
+    }
 
-        private AIWindow CreateAIWindow()
+    protected override void Draw()
+    {
+        drawingLogic.Draw(replayLogic.Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
+    }
+
+    private void TextBlock_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is TextBlock textBlock)
         {
-            var serviceProvider = (Application.Current as App)?.ServiceProvider ??
-                            throw new InvalidOperationException("ServiceProvider is not initialized!");
-            var window = windowFactory.Create<AIWindow>(serviceProvider);
-            return window;
+            Clipboard.SetText(textBlock.Text);
         }
+    }
+
+    private ServiceProvider GetServiceProvider() => (Application.Current as App)?.ServiceProvider ??
+        throw new InvalidOperationException("ServiceProvider is not initialized!");
+
+    private AIWindow CreateAIWindow() => windowFactory.Create<AIWindow>(GetServiceProvider());
+
+    private void ButtonShortcutKeys_Click(object sender, RoutedEventArgs e)
+    {
+        var window = windowFactory.Create<ShortcutKeysWindow>(GetServiceProvider());
+        window.Owner = this;
+        window.ShowInTaskbar = false;
+        window.ShowDialog();
     }
 }
