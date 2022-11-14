@@ -105,6 +105,7 @@ public partial class App : Application
 
         services.AddSingleton<ICrashLogic, CrashLogic>();
         services.AddSingleton<VersionLogic>();
+        services.AddSingleton<IStorageLogic, StorageLogic>();
         services.AddSingleton<IThreadLogic, ThreadLogic>();
         services.AddSingleton<IConnector, Connector>();
         services.AddSingleton<ExportLogic>();

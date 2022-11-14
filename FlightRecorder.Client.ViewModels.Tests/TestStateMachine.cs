@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace FlightRecorder.Client.ViewModels.Tests
@@ -14,6 +15,8 @@ namespace FlightRecorder.Client.ViewModels.Tests
     public class TestStateMachine
     {
         private Mock<IThreadLogic> mockThreadLogic = null!;
+        private Mock<ISettingsLogic> mockSettingsLogic = null!;
+        private Mock<IStorageLogic> mockStorageLogic = null!;
         private Mock<IRecorderLogic> mockRecorderLogic = null!;
         private Mock<IReplayLogic> mockReplayLogic = null!;
         private Mock<IConnector> mockConnector = null!;
@@ -32,6 +35,8 @@ namespace FlightRecorder.Client.ViewModels.Tests
             var factory = serviceProvider.GetService<ILoggerFactory>()!;
 
             mockThreadLogic = new Mock<IThreadLogic>();
+            mockSettingsLogic = new Mock<ISettingsLogic>();
+            mockStorageLogic = new Mock<IStorageLogic>();
             mockRecorderLogic = new Mock<IRecorderLogic>();
             mockReplayLogic = new Mock<IReplayLogic>();
             mockConnector = new Mock<IConnector>();
@@ -47,6 +52,8 @@ namespace FlightRecorder.Client.ViewModels.Tests
             stateMachine = new StateMachine(
                 factory.CreateLogger<StateMachine>(),
                 viewModel,
+                mockSettingsLogic.Object,
+                mockStorageLogic.Object,
                 mockRecorderLogic.Object,
                 mockReplayLogic.Object,
                 mockDialogLogic.Object,
@@ -62,14 +69,17 @@ namespace FlightRecorder.Client.ViewModels.Tests
 
             Assert.AreEqual(StateMachine.State.DisconnectedEmpty, viewModel.State);
 
-            mockDialogLogic.Setup(logic => logic.LoadAsync())
-                .Returns(Task.FromResult<(string?, SavedData?)>(("test", new SavedData(
+            mockDialogLogic.Setup(logic => logic.PickOpenFileAsync())
+                .Returns(Task.FromResult<(string, Stream)?>(("test", new MemoryStream())));
+            mockStorageLogic.Setup(logic => logic.LoadAsync(It.IsAny<Stream>()))
+                .Returns(Task.FromResult<SavedData?>(new SavedData(
                     "TEST_VERSION",
                     0,
                     1,
                     null,
                     new List<(long milliseconds, AircraftPositionStruct position)>()
-                ))));
+                )));
+
             await stateMachine.TransitAsync(StateMachine.Event.Load);
             Assert.AreEqual(StateMachine.State.DisconnectedSaved, viewModel.State);
         }

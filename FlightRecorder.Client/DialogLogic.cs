@@ -1,12 +1,13 @@
 ﻿using FlightRecorder.Client.Logics;
-using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
 using System;
 using System.IO;
-using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Forms;
+using MessageBox = System.Windows.MessageBox;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace FlightRecorder.Client
 {
@@ -31,7 +32,8 @@ namespace FlightRecorder.Client
             MessageBox.Show(error, "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
-        public async Task<string?> SaveAsync(SavedData data)
+        /// <returns>Full path of the selected file or null</returns>
+        public Task<string?> PickSaveFileAsync()
         {
             var dialog = new SaveFileDialog
             {
@@ -40,32 +42,13 @@ namespace FlightRecorder.Client
             };
             if (dialog.ShowDialog() == true)
             {
-                using (var fileStream = new FileStream(dialog.FileName, FileMode.Create))
-                {
-                    using var outStream = new ZipOutputStream(fileStream);
-
-                    outStream.SetLevel(9);
-
-                    var entry = new ZipEntry("data.json")
-                    {
-                        DateTime = DateTime.Now
-                    };
-                    outStream.PutNextEntry(entry);
-
-                    await JsonSerializer.SerializeAsync(outStream, data);
-
-                    outStream.Finish();
-                }
-
-                logger.LogDebug("Saved file into {fileName}", dialog.FileName);
-
-                return Path.GetFileName(dialog.FileName);
+                return Task.FromResult<string?>(dialog.FileName);
             }
 
-            return null;
+            return Task.FromResult<string?>(null);
         }
 
-        public async Task<(string? fileName, SavedData? data)> LoadAsync()
+        public async Task<(string filePath, Stream fileStream)?> PickOpenFileAsync()
         {
             var dialog = new OpenFileDialog
             {
@@ -74,24 +57,19 @@ namespace FlightRecorder.Client
 
             if (dialog.ShowDialog() == true)
             {
-                using var file = dialog.OpenFile();
-                using var zipFile = new ZipFile(file);
-
-                foreach (ZipEntry entry in zipFile)
-                {
-                    if (entry.IsFile && entry.Name == "data.json")
-                    {
-                        using var stream = zipFile.GetInputStream(entry);
-
-                        var result = await JsonSerializer.DeserializeAsync<SavedData>(stream);
-
-                        logger.LogDebug("Loaded file from {fileName}", dialog.FileName);
-
-                        return (Path.GetFileName(dialog.FileName), result);
-                    }
-                }
+                return (dialog.FileName, dialog.OpenFile());
             }
-            return (null, null);
+            return null;
+        }
+
+        public Task<string?> PickSaveFolderAsync()
+        {
+            var dialog = new FolderBrowserDialog();
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                return Task.FromResult<string?>(dialog.SelectedPath);
+            }
+            return Task.FromResult<string?>(null);
         }
     }
 }

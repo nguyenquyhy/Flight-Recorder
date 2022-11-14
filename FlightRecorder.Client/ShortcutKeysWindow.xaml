@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:FlightRecorder.Client"
         mc:Ignorable="d"
         Loaded="Window_Loaded"
-        Title="Shortcut Keys" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" Height="220" Width="350">
+        Title="Shortcut Keys" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" Height="260" Width="350">
     <Grid Margin="10">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
@@ -25,6 +25,9 @@
                     <RowDefinition />
                     <RowDefinition />
                     <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition Height="10" />
                     <RowDefinition />
                     <RowDefinition />
                 </Grid.RowDefinitions>
@@ -50,7 +53,25 @@
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Ctrl + Shift + Alt + &gt;" />
                 <TextBlock Grid.Row="5" Grid.Column="1" Text="Resume" />
+
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="Ctrl + Shift + Alt + C" />
+                <TextBlock Grid.Row="7" Grid.Column="1" Text="Save to disk" />
+
+                <Grid Grid.Row="8" Grid.ColumnSpan="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Default path" />
+                    <TextBox x:Name="TextDefaultSaveFolder" IsReadOnly="True" Grid.Column="1" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button x:Name="ButtonPickDefaultSaveFolder" Width="50" Click="ButtonPickDefaultSaveFolder_Click">Pick</Button>
+                        <Button x:Name="ButtonRemoveDefaultSaveFolder" Width="50" Click="ButtonRemoveDefaultSaveFolder_Click">Remove</Button>
+                    </StackPanel>
+                </Grid>
             </Grid>
+            
         </StackPanel>
     </Grid>
 </Window>

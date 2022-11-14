@@ -19,6 +19,7 @@ public class ShortcutKeyLogic
     private const uint KeyPause = 0xBC; // ,
     private const uint KeyResume = 0xBE; // .
     private const uint KeyStopReplaying = 'S';
+    private const uint KeySave = 'C';
 
     private readonly ILogger<ShortcutKeyLogic> logger;
     private readonly StateMachine stateMachine;
@@ -56,6 +57,7 @@ public class ShortcutKeyLogic
                 RegisterHotKey(handle, 3, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyPause);
                 RegisterHotKey(handle, 4, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyResume);
                 RegisterHotKey(handle, 5, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyStopReplaying);
+                RegisterHotKey(handle, 5, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeySave);
                 return true;
             }
         }
@@ -94,22 +96,25 @@ public class ShortcutKeyLogic
                         switch (key)
                         {
                             case KeyRecord:
-                                await stateMachine.TransitAsync(StateMachine.Event.Record);
+                                await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Record);
                                 break;
                             case KeyStopRecording:
-                                await stateMachine.TransitAsync(StateMachine.Event.Stop);
+                                await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Stop);
                                 break;
                             case KeyReplay:
-                                await stateMachine.TransitAsync(StateMachine.Event.Replay);
+                                await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Replay);
                                 break;
                             case KeyPause:
-                                await stateMachine.TransitAsync(StateMachine.Event.Pause);
+                                await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Pause);
                                 break;
                             case KeyResume:
-                                await stateMachine.TransitAsync(StateMachine.Event.Resume);
+                                await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Resume);
                                 break;
                             case KeyStopReplaying:
-                                await stateMachine.TransitAsync(StateMachine.Event.RequestStopping);
+                                await stateMachine.TransitFromShortcutAsync(StateMachine.Event.RequestStopping);
+                                break;
+                            case KeySave:
+                                await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Save);
                                 break;
                         }
                     }

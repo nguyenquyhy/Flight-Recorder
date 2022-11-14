@@ -29,6 +29,17 @@ public class FileSettingsLogic : ISettingsLogic
         return SaveAsync(settings => settings.ShortcutKeysEnabled = value);
     }
 
+    public async Task<string?> GetDefaultSaveFolderAsync()
+    {
+        var settings = await LoadAsync();
+        return settings.DefaultSaveFolder;
+    }
+
+    public Task SetDefaultSaveFolderAsync(string? folderPath)
+    {
+        return SaveAsync(settings => settings.DefaultSaveFolder = folderPath);
+    }
+
     private static SemaphoreSlim sm = new SemaphoreSlim(1);
 
     private Settings? settings = null;
@@ -87,4 +98,5 @@ public class FileSettingsLogic : ISettingsLogic
 public class Settings
 {
     public bool ShortcutKeysEnabled { get; set; } = false;
+    public string? DefaultSaveFolder { get; set; } = null;
 }

@@ -4,6 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+	<UseWindowsForms>true</UseWindowsForms>
     <Version>0.21.0</Version>
     <Authors>Nguyen Quy Hy</Authors>
     <Product>Flight Recorder</Product>
@@ -31,7 +32,6 @@
     <PackageReference Include="Serilog.Sink.AppCenter" Version="1.4.0" />
     <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
-    <PackageReference Include="SharpZipLib" Version="1.4.1" />
   </ItemGroup>
 
   <ItemGroup>

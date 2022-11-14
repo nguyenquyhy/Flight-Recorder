@@ -35,11 +35,10 @@ public abstract class StateMachineCore
         this.viewModel = viewModel;
     }
 
-    /// <summary>
-    ///
-    /// </summary>
+    public Task<bool> TransitFromShortcutAsync(Event e) => TransitAsync(e, true);
+
     /// <returns>True to indicate that user did not cancel any prompt</returns>
-    public async Task<bool> TransitAsync(Event e)
+    public async Task<bool> TransitAsync(Event e, bool fromShortcut = false)
     {
         logger.LogDebug("Triggering event {event} from state {state}", e, CurrentState);
 
@@ -53,11 +52,15 @@ public abstract class StateMachineCore
 
             if (transition.ViaEvents != null)
             {
-                return await ExecuteMultipleTransitionsAsync(e, transition.ViaEvents, transition.WaitForEvents, transition.RevertErrorMessage);
+                return await ExecuteMultipleTransitionsAsync(
+                    e,
+                    transition.ViaEvents, transition.WaitForEvents, transition.RevertErrorMessage,
+                    fromShortcut
+                );
             }
             else
             {
-                return await ExecuteSingleTransitionAsync(e, transition);
+                return await ExecuteSingleTransitionAsync(e, transition, fromShortcut);
             }
         }
         else
@@ -67,10 +70,12 @@ public abstract class StateMachineCore
         }
     }
 
-    protected async Task<bool> ExecuteSingleTransitionAsync(Event originatingEvent, Transition transition)
+    protected async Task<bool> ExecuteSingleTransitionAsync(Event originatingEvent, Transition transition, bool fromShortcut)
     {
         var oldState = CurrentState;
-        var resultingState = await transition.ExecuteAsync();
+        var resultingState = await transition.ExecuteAsync(new ActionContext(
+            fromShortcut
+        ));
 
         var success = true;
 
@@ -104,7 +109,11 @@ public abstract class StateMachineCore
     /// <param name="viaEvents">The events that state machine should triggered instead</param>
     /// <param name="waitForEvents">Some events in the viaEvents list should not be triggered by the state machine itself. Instead, the state machine should wait for the event to be triggered externally before continue with the viaEvents list.</param>
     /// <param name="revertErrorMessage">Revert state if there is a an error and show the error message</param>
-    protected async Task<bool> ExecuteMultipleTransitionsAsync(Event originatingEvent, Event[] viaEvents, Event[]? waitForEvents, string? revertErrorMessage)
+    protected async Task<bool> ExecuteMultipleTransitionsAsync(
+        Event originatingEvent,
+        Event[] viaEvents, Event[]? waitForEvents, string? revertErrorMessage,
+        bool fromShortcut
+    )
     {
         var success = true;
 
@@ -154,7 +163,9 @@ public abstract class StateMachineCore
                     // TODO: maybe recurse here?
 
                     var oldState = CurrentState;
-                    var resultingState = await stateLogics[oldState][via].ExecuteAsync();
+                    var resultingState = await stateLogics[oldState][via].ExecuteAsync(new ActionContext(
+                        fromShortcut
+                    ));
                     if (resultingState.HasValue)
                     {
                         CurrentState = resultingState.Value;

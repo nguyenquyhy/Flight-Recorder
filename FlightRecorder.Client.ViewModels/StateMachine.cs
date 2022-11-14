@@ -1,6 +1,8 @@
 ﻿using FlightRecorder.Client.Logics;
 using FlightRecorder.Client.ViewModels.States;
 using Microsoft.Extensions.Logging;
+using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace FlightRecorder.Client
@@ -11,6 +13,8 @@ namespace FlightRecorder.Client
         public const string SaveErrorMessage = "Flight Recorder cannot write the file to disk.\nPlease make sure the folder is accessible by Flight Recorder, and you are not overwriting a locked file.";
 
         private readonly MainViewModel viewModel;
+        private readonly ISettingsLogic settingsLogic;
+        private readonly IStorageLogic storageLogic;
         private readonly IRecorderLogic recorderLogic;
         private readonly IReplayLogic replayLogic;
         private readonly string currentVersion;
@@ -56,11 +60,21 @@ namespace FlightRecorder.Client
             End
         }
 
-        public StateMachine(ILogger<StateMachine> logger, MainViewModel viewModel, IRecorderLogic recorderLogic, IReplayLogic replayLogic, IDialogLogic dialogLogic, VersionLogic versionLogic)
-            : base(logger, dialogLogic, viewModel)
+        public StateMachine(
+            ILogger<StateMachine> logger,
+            MainViewModel viewModel,
+            ISettingsLogic settingsLogic,
+            IStorageLogic storageLogic,
+            IRecorderLogic recorderLogic,
+            IReplayLogic replayLogic,
+            IDialogLogic dialogLogic,
+            VersionLogic versionLogic
+        ) : base(logger, dialogLogic, viewModel)
         {
             logger.LogDebug("Creating instance of {class}", nameof(StateMachine));
             this.viewModel = viewModel;
+            this.settingsLogic = settingsLogic;
+            this.storageLogic = storageLogic;
             this.recorderLogic = recorderLogic;
             this.replayLogic = replayLogic;
             this.currentVersion = versionLogic.GetVersion();
@@ -209,25 +223,46 @@ namespace FlightRecorder.Client
             return true;
         }
 
-        private async Task<bool> SaveRecordingAsync()
+        private async Task<bool> SaveRecordingAsync(ActionContext actionContext)
         {
             var data = replayLogic.ToData(currentVersion);
-            var fileName = await dialogLogic.SaveAsync(data);
-            if (!string.IsNullOrEmpty(fileName))
+
+            async Task<string?> GetSavePath()
             {
-                replayLogic.FromData(fileName, data);
-                return true;
+                if (actionContext.FromShortcut)
+                {
+                    var folder = await settingsLogic.GetDefaultSaveFolderAsync();
+                    if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
+                    {
+                        return Path.Combine(folder, $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss}.fltrec");
+                    }
+                }
+                return await dialogLogic.PickSaveFileAsync();
             }
-            return false;
+
+            var filePath = await GetSavePath();
+
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return false;
+            }
+
+            await storageLogic.SaveAsync(filePath, data);
+            replayLogic.FromData(Path.GetFileName(filePath), data);
+            return true;
         }
 
         private async Task<bool> LoadRecordingAsync()
         {
-            var (fileName, data) = await dialogLogic.LoadAsync();
-            if (data != null)
+            var selectedFile = await dialogLogic.PickOpenFileAsync();
+            if (selectedFile != null)
             {
-                replayLogic.FromData(fileName, data);
-                return true;
+                var data = await storageLogic.LoadAsync(selectedFile.Value.fileStream);
+                if (data != null)
+                {
+                    replayLogic.FromData(Path.GetFileName(selectedFile.Value.filePath), data);
+                    return true;
+                }
             }
             return false;
         }

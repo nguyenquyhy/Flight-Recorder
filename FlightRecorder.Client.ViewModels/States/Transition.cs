@@ -23,9 +23,15 @@ namespace FlightRecorder.Client.ViewModels.States
         /// <summary>
         /// Can be called multiple times
         /// </summary>
-        public Transition Then(Func<bool> action) => this with { Actions = Actions.Add(action) };
+        public Transition Then(Func<bool> action) => Then((context) => action());
 
-        public Transition Then(Func<Task<bool>> action) => this with { Actions = Actions.Add(action) };
+        /// <summary>
+        /// Can be called multiple times
+        /// </summary>
+        public Transition Then(Func<ActionContext, bool> action) => this with { Actions = Actions.Add(action) };
+
+        public Transition Then(Func<Task<bool>> action) => Then((context) => action());
+        public Transition Then(Func<ActionContext, Task<bool>> action) => this with { Actions = Actions.Add(action) };
 
         public Transition By(Event e) => this with { ByEvent = e };
 
@@ -35,7 +41,7 @@ namespace FlightRecorder.Client.ViewModels.States
 
         public Transition RevertOnError(string errorMessage) => this with { RevertErrorMessage = errorMessage };
 
-        public async Task<State?> ExecuteAsync()
+        public async Task<State?> ExecuteAsync(ActionContext actionContext)
         {
             if (ViaEvents != null) throw new InvalidOperationException($"This transition from {FromState} by {ByEvent} cannot be executed directly!");
 
@@ -43,12 +49,12 @@ namespace FlightRecorder.Client.ViewModels.States
             {
                 switch (action)
                 {
-                    case Func<bool> syncAction:
-                        if (!syncAction())
+                    case Func<ActionContext, bool> syncAction:
+                        if (!syncAction(actionContext))
                             return null;
                         break;
-                    case Func<Task<bool>> asyncAction:
-                        if (!await asyncAction())
+                    case Func<ActionContext, Task<bool>> asyncAction:
+                        if (!await asyncAction(actionContext))
                             return null;
                         break;
                 }
