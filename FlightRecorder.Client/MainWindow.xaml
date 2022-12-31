@@ -32,7 +32,7 @@
             <Rectangle Style="{StaticResource SeparatorStyle}" />
 
             <Slider Maximum="{Binding FrameCount, Converter={StaticResource AdditionConverter}, ConverterParameter=-1}" Value="{Binding CurrentFrame}" SmallChange="1"
-                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=IdleSaved|IdleUnsaved|PausingSaved|PausingUnsaved}"
+                    IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=DisconnectedSaved|DisconnectedUnsaved|IdleSaved|IdleUnsaved|PausingSaved|PausingUnsaved}"
                     ValueChanged="Slider_ValueChanged" MouseWheel="Slider_MouseWheel" />
 
             <Grid x:Name="ImageWrapper" Height="50" HorizontalAlignment="Stretch" Margin="5,0">
@@ -68,23 +68,33 @@
                             Click="ButtonContext_Click">
                         <Button.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="x0.25" Click="MenuItem_Click" />
-                                <MenuItem Header="x0.5" Click="MenuItem_Click" />
-                                <MenuItem Header="x0.75" Click="MenuItem_Click" />
+                                <MenuItem Header="x0.25" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x0.5" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x0.75" Click="SpeedMenuItem_Click" />
                                 <Separator />
-                                <MenuItem Header="x1" Click="MenuItem_Click" />
+                                <MenuItem Header="x1" Click="SpeedMenuItem_Click" />
                                 <Separator />
-                                <MenuItem Header="x1.5" Click="MenuItem_Click" />
-                                <MenuItem Header="x2" Click="MenuItem_Click" />
-                                <MenuItem Header="x3" Click="MenuItem_Click" />
-                                <MenuItem Header="x4" Click="MenuItem_Click" />
-                                <MenuItem Header="x8" Click="MenuItem_Click" />
-                                <MenuItem Header="x16" Click="MenuItem_Click" />
+                                <MenuItem Header="x1.5" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x2" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x3" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x4" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x8" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x16" Click="SpeedMenuItem_Click" />
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
                     <TextBlock Text="Current: " />
                     <TextBlock Text="{Binding CurrentFrame, Converter={StaticResource AdditionConverter}, ConverterParameter=1}" />
+                    <Button Content="Trim" Margin="5,0,0,0" Padding="5,0" ContextMenuService.Placement="Bottom"
+                            IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=IdleSaved|IdleUnsaved|DisconnectedSaved|DisconnectedUnsaved|PausingSaved|PausingUnsaved}"
+                            Click="ButtonContext_Click">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Start Here" Click="TrimStartMenuItem_Click" />
+                                <MenuItem Header="End Here" Click="TrimEndMenuItem_Click" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">

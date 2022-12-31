@@ -1,28 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FlightRecorder.Client.Logics
+namespace FlightRecorder.Client.Logics;
+
+public interface IReplayLogic
 {
-    public interface IReplayLogic
-    {
-        event EventHandler<RecordsUpdatedEventArgs> RecordsUpdated;
-        event EventHandler ReplayFinished;
-        event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
+    event EventHandler<RecordsUpdatedEventArgs> RecordsUpdated;
+    event EventHandler ReplayFinished;
+    event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
 
-        List<(long milliseconds, AircraftPositionStruct position)> Records { get; }
-        string? AircraftTitle { get; set; }
+    List<(long milliseconds, AircraftPositionStruct position)> Records { get; }
+    string? AircraftTitle { get; set; }
 
-        bool Replay();
-        bool PauseReplay();
-        bool ResumeReplay();
-        void Seek(int value);
-        bool StopReplay();
-        void ChangeRate(double rate);
-        void SetRepeat(bool repeat);
-        void Unfreeze();
-        void NotifyPosition(AircraftPositionStruct? value);
+    bool Replay();
+    bool PauseReplay();
+    bool ResumeReplay();
+    void Seek(int value);
+    void TrimStart();
+    void TrimEnd();
+    bool StopReplay();
+    void ChangeRate(double rate);
+    void SetRepeat(bool repeat);
+    void Unfreeze();
+    void NotifyPosition(AircraftPositionStruct? value);
 
-        void FromData(string? fileName, SavedData data);
-        SavedData ToData(string clientVersion);
-    }
+    void FromData(string? fileName, SavedData data);
+    SavedData ToData(string clientVersion);
 }

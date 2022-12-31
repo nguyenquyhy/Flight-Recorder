@@ -213,12 +213,30 @@ public partial class MainWindow : BaseWindow
         Height = viewModel.ShowData ? 472 : 307;
     }
 
-    private void MenuItem_Click(object sender, RoutedEventArgs e)
+    private void SpeedMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as MenuItem)?.Header is string header && double.TryParse(header[1..], NumberStyles.Any, CultureInfo.InvariantCulture, out var rate))
         {
             ButtonSpeed.Content = header;
             replayLogic.ChangeRate(rate);
+        }
+    }
+
+    private async void TrimStartMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (await stateMachine.TransitAsync(StateMachine.Event.TrimStart))
+        {
+            drawingLogic.ClearCache();
+            Draw();
+        }
+    }
+
+    private async void TrimEndMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (await stateMachine.TransitAsync(StateMachine.Event.TrimEnd))
+        {
+            drawingLogic.ClearCache();
+            Draw();
         }
     }
 

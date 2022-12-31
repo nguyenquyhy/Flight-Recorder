@@ -51,18 +51,18 @@
                             Click="ButtonContext_Click">
                         <Button.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="x0.25" Click="MenuItem_Click" />
-                                <MenuItem Header="x0.5" Click="MenuItem_Click" />
-                                <MenuItem Header="x0.75" Click="MenuItem_Click" />
+                                <MenuItem Header="x0.25" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x0.5" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x0.75" Click="SpeedMenuItem_Click" />
                                 <Separator />
-                                <MenuItem Header="x1" Click="MenuItem_Click" />
+                                <MenuItem Header="x1" Click="SpeedMenuItem_Click" />
                                 <Separator />
-                                <MenuItem Header="x1.5" Click="MenuItem_Click" />
-                                <MenuItem Header="x2" Click="MenuItem_Click" />
-                                <MenuItem Header="x3" Click="MenuItem_Click" />
-                                <MenuItem Header="x4" Click="MenuItem_Click" />
-                                <MenuItem Header="x8" Click="MenuItem_Click" />
-                                <MenuItem Header="x16" Click="MenuItem_Click" />
+                                <MenuItem Header="x1.5" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x2" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x3" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x4" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x8" Click="SpeedMenuItem_Click" />
+                                <MenuItem Header="x16" Click="SpeedMenuItem_Click" />
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>

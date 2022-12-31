@@ -8,497 +8,550 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 
-namespace FlightRecorder.Client.Logics
+namespace FlightRecorder.Client.Logics;
+
+public class ReplayLogic : IReplayLogic, IDisposable
 {
-    public class ReplayLogic : IReplayLogic, IDisposable
+    public event EventHandler<RecordsUpdatedEventArgs>? RecordsUpdated;
+    public event EventHandler? ReplayFinished;
+    public event EventHandler<CurrentFrameChangedEventArgs>? CurrentFrameChanged;
+
+    private const int EventThrottleMilliseconds = 500;
+
+    private readonly ILogger<ReplayLogic> logger;
+    private readonly IConnector connector;
+    private readonly Stopwatch stopwatch = new();
+
+
+    private long? startMilliseconds;
+    private long? endMilliseconds;
+    private SimStateStruct? startState;
+
+    public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; } = new();
+
+    public string? AircraftTitle { get; set; }
+
+    private int currentFrame;
+
+    private double rate = 1;
+    private bool repeat = false;
+    private int? pausedFrame;
+    private double? pausedRate;
+    private bool isReplayStopping;
+    private long? replayMilliseconds;
+    private long? pausedMilliseconds;
+    private long offsetStartMilliseconds = 0;
+    private bool forceReset = false;
+
+    private AircraftPositionStruct? currentPosition = null;
+    private long? lastTriggeredMilliseconds = null;
+    private TaskCompletionSource<bool>? tcs;
+
+    private bool IsReplayable => Records.Count > 0;
+    private bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
+    private bool IsPausing => pausedMilliseconds != null;
+
+    private bool IsAI([NotNullWhen(true)] string? aircraftTitle) => !string.IsNullOrEmpty(aircraftTitle);
+    private uint? aiRequestId = null;
+    private uint? aiId = null;
+    // private Timer timer;
+
+    public ReplayLogic(ILogger<ReplayLogic> logger, IConnector connector)
     {
-        public event EventHandler<RecordsUpdatedEventArgs>? RecordsUpdated;
-        public event EventHandler? ReplayFinished;
-        public event EventHandler<CurrentFrameChangedEventArgs>? CurrentFrameChanged;
+        logger.LogDebug("Creating instance of {class}", nameof(ReplayLogic));
 
-        private const int EventThrottleMilliseconds = 500;
+        this.logger = logger;
+        this.connector = connector;
 
-        private readonly ILogger<ReplayLogic> logger;
-        private readonly IConnector connector;
-        private readonly Stopwatch stopwatch = new();
+        RegisterEvents();
+    }
 
+    public void Dispose()
+    {
+        logger.LogDebug("Disposing {class}", nameof(RecorderLogic));
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
-        private long? startMilliseconds;
-        private long? endMilliseconds;
-        private SimStateStruct? startState;
-
-        public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; } = new();
-
-        public string? AircraftTitle { get; set; }
-
-        private int currentFrame;
-
-        private double rate = 1;
-        private bool repeat = false;
-        private int? pausedFrame;
-        private double? pausedRate;
-        private bool isReplayStopping;
-        private long? replayMilliseconds;
-        private long? pausedMilliseconds;
-        private long? offsetStartMilliseconds;
-
-        private AircraftPositionStruct? currentPosition = null;
-        private long? lastTriggeredMilliseconds = null;
-        private TaskCompletionSource<bool>? tcs;
-
-        private bool IsReplayable => Records != null && Records.Count > 0;
-        private bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
-        private bool IsPausing => pausedMilliseconds != null;
-
-        private bool IsAI([NotNullWhen(true)] string? aircraftTitle) => !string.IsNullOrEmpty(aircraftTitle);
-        private uint? aiRequestId = null;
-        private uint? aiId = null;
-        // private Timer timer;
-
-        public ReplayLogic(ILogger<ReplayLogic> logger, IConnector connector)
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
         {
-            logger.LogDebug("Creating instance of {class}", nameof(ReplayLogic));
+            DeregisterEvents();
+        }
+    }
 
-            this.logger = logger;
-            this.connector = connector;
+    private void RegisterEvents()
+    {
+        connector.AircraftIdReceived += Connector_AircraftIdReceived;
+        connector.CreatingObjectFailed += Connector_CreatingObjectFailed;
+        connector.Frame += Connector_Frame;
+    }
 
-            RegisterEvents();
+    private void DeregisterEvents()
+    {
+        connector.AircraftIdReceived -= Connector_AircraftIdReceived;
+        connector.CreatingObjectFailed -= Connector_CreatingObjectFailed;
+        connector.Frame -= Connector_Frame;
+    }
+
+    #region Public Functions
+
+    public bool Replay()
+    {
+        if (!IsReplayable)
+        {
+            logger.LogInformation("No record to replay!");
+            return false;
         }
 
-        public void Dispose()
-        {
-            logger.LogDebug("Disposing {class}", nameof(RecorderLogic));
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+        logger.LogDebug("Initializing replay...");
 
-        protected virtual void Dispose(bool disposing)
+        stopwatch.Start();
+
+        logger.LogInformation("Start replay from {currentFrame}...", currentFrame);
+
+        stopwatch.Restart();
+        lastTriggeredMilliseconds = null;
+        replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)(offsetStartMilliseconds / rate);
+
+        if (Records.Any())
         {
-            if (disposing)
+            var currentPosition = Records[currentFrame].position;
+            if (IsAI(AircraftTitle))
             {
-                DeregisterEvents();
+                aiRequestId = connector.Spawn(AircraftTitle, currentPosition);
+            }
+            else
+            {
+                connector.Init(0, currentPosition);
             }
         }
 
-        private void RegisterEvents()
+        Task.Run(RunReplay);
+
+        return true;
+    }
+
+    public bool PauseReplay()
+    {
+        if (IsReplaying)
         {
-            connector.AircraftIdReceived += Connector_AircraftIdReceived;
-            connector.CreatingObjectFailed += Connector_CreatingObjectFailed;
-            connector.Frame += Connector_Frame;
-        }
+            logger.LogInformation("Pause recording...");
 
-        private void DeregisterEvents()
-        {
-            connector.AircraftIdReceived -= Connector_AircraftIdReceived;
-            connector.CreatingObjectFailed -= Connector_CreatingObjectFailed;
-            connector.Frame -= Connector_Frame;
-        }
-
-        #region Public Functions
-
-        public bool Replay()
-        {
-            if (!IsReplayable)
-            {
-                logger.LogInformation("No record to replay!");
-                return false;
-            }
-
-            logger.LogDebug("Initializing replay...");
-
-            stopwatch.Start();
-
-            logger.LogInformation("Start replay from {currentFrame}...", currentFrame);
-
-            stopwatch.Restart();
-            lastTriggeredMilliseconds = null;
-            replayMilliseconds = stopwatch.ElapsedMilliseconds - offsetStartMilliseconds ?? 0;
-
-            if (Records.Any())
-            {
-                var currentPosition = Records[currentFrame].position;
-                if (IsAI(AircraftTitle))
-                {
-                    aiRequestId = connector.Spawn(AircraftTitle, currentPosition);
-                }
-                else
-                {
-                    connector.Init(0, currentPosition);
-                }
-            }
-
-            Task.Run(RunReplay);
+            pausedMilliseconds = stopwatch.ElapsedMilliseconds;
+            pausedFrame = currentFrame;
+            pausedRate = rate;
 
             return true;
         }
+        return false;
+    }
 
-        public bool PauseReplay()
+    /**** Timeline
+     * replayMilliseconds
+     *                                        pausedMilliseconds
+     *                                                            stopwatch
+     *                                                            resume
+     */
+
+    public bool ResumeReplay()
+    {
+        if (IsPausing)
         {
-            if (IsReplaying)
+            // Recalculate the projected replayMilliseconds (when replay starts) based on current elapsed period and current rate
+            var frame = currentFrame;
+            if (frame == pausedFrame)
             {
-                logger.LogInformation("Pause recording...");
-
-                pausedMilliseconds = stopwatch.ElapsedMilliseconds;
-                pausedFrame = currentFrame;
-                pausedRate = rate;
-
-                return true;
+                // No seeking => Resume based on pause time
+                if (pausedMilliseconds == null) throw new InvalidOperationException("Cannot resume without pause time!");
+                if (replayMilliseconds == null) throw new InvalidOperationException("Cannot resume without replay time!");
+                if (pausedRate == null) throw new InvalidOperationException("Cannot resume without pause rate!");
+                replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((pausedMilliseconds - replayMilliseconds) / rate * pausedRate);
             }
-            return false;
-        }
-
-        /**** Timeline
-         * replayMilliseconds
-         *                                        pausedMilliseconds
-         *                                                            stopwatch
-         *                                                            resume
-         */
-
-        public bool ResumeReplay()
-        {
-            if (IsPausing)
+            else
             {
-                var frame = currentFrame;
-                if (frame == pausedFrame)
-                {
-                    // No seeking => Resume based on pause time
-                    if (pausedMilliseconds == null) throw new InvalidOperationException("Cannot resume without pause time!");
-                    if (replayMilliseconds == null) throw new InvalidOperationException("Cannot resume without replay time!");
-                    if (pausedRate == null) throw new InvalidOperationException("Cannot resume without pause rate!");
-                    replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((pausedMilliseconds - replayMilliseconds) / rate * pausedRate);
-                }
-                else
-                {
-                    // Resume based on seeked frame
-                    if (startMilliseconds == null) throw new InvalidOperationException("Cannot resume without start time!");
-                    replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((Records[frame].milliseconds - startMilliseconds) / rate);
-                }
-
-                // Initialize resumed position
-                if (frame == -1)
-                {
-                    // Ignore as this happens when Pause is clicked before the first frame is calculated
-                }
-                else if (frame == pausedFrame)
-                {
-                    // Ignore to prevent init unnecessarily
-                }
-                else if (frame >= 0 && frame < Records.Count)
-                {
-                    connector.Init(aiId ?? 0, Records[frame].position);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Cannot resume at frame {frame} because there are only {Records.Count} frames!");
-                }
-
-                // Signal unpaused
-                pausedMilliseconds = null;
-                // NOTE: pausedFrame is not cleared here to allow resuming in the loop
-
-                return true;
+                // Resume based on seeked frame
+                if (startMilliseconds == null) throw new InvalidOperationException("Cannot resume without start time!");
+                replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((Records[frame].milliseconds - startMilliseconds) / rate);
             }
-            return false;
-        }
 
-        public bool StopReplay()
-        {
-            if (IsReplaying || IsPausing)
+            // Initialize resumed position
+            if (frame == -1)
             {
-                isReplayStopping = true;
-
-                // Make sure at least one more tick happens to handle sim exit
-                Tick();
-
-                return true;
+                // Ignore as this happens when Pause is clicked before the first frame is calculated
             }
-            return false;
+            else if (frame == pausedFrame)
+            {
+                // Ignore to prevent init unnecessarily
+            }
+            else if (frame >= 0 && frame < Records.Count)
+            {
+                connector.Init(aiId ?? 0, Records[frame].position);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Cannot resume at frame {frame} because there are only {Records.Count} frames!");
+            }
+
+            // Signal unpaused
+            pausedMilliseconds = null;
+            // NOTE: pausedFrame is not cleared here to allow resuming in the loop
+
+            return true;
         }
+        return false;
+    }
 
-        public void Seek(int value)
+    public bool StopReplay()
+    {
+        if (IsReplaying || IsPausing)
         {
-            logger.LogTrace("Seek to {value}", value);
+            isReplayStopping = true;
 
+            // Make sure at least one more tick happens to handle sim exit
+            Tick();
+
+            return true;
+        }
+        return false;
+    }
+
+    public void Seek(int value)
+    {
+        logger.LogTrace("Seek to {value} from {current}", value, currentFrame);
+
+        // NOTE: We need to check for change here to avoid unnecessary seeking due to CurrentFrameChanged event from internal logic.
+        if (currentFrame != value)
+        {
             currentFrame = value;
 
+            (var elapsed, var position) = Records[value];
             if (IsPausing)
             {
-                (var elapsed, var position) = Records[value];
                 MoveAircraft(elapsed, position, null, null, 0);
             }
             else if (!IsReplaying)
             {
-                (var elapsed, _) = Records[value];
-                offsetStartMilliseconds = elapsed - startMilliseconds;
+                offsetStartMilliseconds = (elapsed - startMilliseconds) ?? 0L;
             }
         }
+    }
 
-        public void ChangeRate(double rate)
+    public void TrimStart()
+    {
+        logger.LogDebug("Trim start from frame {frame}", currentFrame);
+        var trimFrame = currentFrame;
+
+        if (IsPausing)
         {
-            this.rate = rate;
+            // Move the pause timestamp to the beginning
+            pausedMilliseconds = replayMilliseconds;
+            pausedFrame = 0;
+            forceReset = true;
+        }
+        else
+        {
+            offsetStartMilliseconds = 0;
         }
 
-        public void SetRepeat(bool repeat)
+        (var currentElapsed, _) = Records[trimFrame];
+        startMilliseconds = currentElapsed;
+        currentFrame = 0;
+        CurrentFrameChanged?.Invoke(this, new(currentFrame));
+        Records = Records.Skip(trimFrame).ToList();
+        RecordsUpdated?.Invoke(this, new(null, startState?.AircraftTitle, Records.Count));
+    }
+
+    public void TrimEnd()
+    {
+        logger.LogDebug("Trim end from frame {frame}", currentFrame);
+        var trimFrame = currentFrame;
+
+        if (!IsPausing)
         {
-            this.repeat = repeat;
+            offsetStartMilliseconds = 0;
+            currentFrame = 0;
+            CurrentFrameChanged?.Invoke(this, new(currentFrame));
         }
 
-        public void Unfreeze()
+        Records = Records.Take(trimFrame + 1).ToList();
+        RecordsUpdated?.Invoke(this, new(null, startState?.AircraftTitle, Records.Count));
+    }
+
+    public void ChangeRate(double rate)
+    {
+        this.rate = rate;
+    }
+
+    public void SetRepeat(bool repeat)
+    {
+        this.repeat = repeat;
+    }
+
+    public void Unfreeze()
+    {
+        if (replayMilliseconds != null)
         {
-            if (replayMilliseconds != null)
-            {
-                if (!IsAI(AircraftTitle))
-                {
-                    connector.Unfreeze(0);
-                }
-                else if (aiId.HasValue)
-                {
-                    connector.Unfreeze(aiId.Value);
-                }
-            }
-        }
-
-        public void NotifyPosition(AircraftPositionStruct? value)
-        {
-            currentPosition = value;
-        }
-
-        public void FromData(string? fileName, SavedData data)
-        {
-            startMilliseconds = data.StartTime;
-            endMilliseconds = data.EndTime;
-            startState = data.StartState == null ? null : SimState.ToStruct(data.StartState);
-            Records = data.Records.Select(r => (r.Time, AircraftPosition.ToStruct(r.Position))).ToList();
-            RecordsUpdated?.Invoke(this, new(fileName, data.StartState?.AircraftTitle, Records.Count));
-        }
-
-        public SavedData ToData(string clientVersion)
-        {
-            if (startMilliseconds == null) throw new InvalidOperationException("Invalid replay data without start time!");
-            if (endMilliseconds == null) throw new InvalidOperationException("Invalid replay data without end time!");
-            return new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, Records);
-        }
-
-        #endregion
-
-        #region Private Functions
-
-        private void Connector_AircraftIdReceived(object? sender, AircraftIdReceivedEventArgs e)
-        {
-            if (IsAI(AircraftTitle) && aiRequestId == e.RequestId && aiId == null)
-            {
-                logger.LogDebug("Set AI ID {objectID}", e.ObjectId);
-                aiRequestId = null;
-                aiId = e.ObjectId;
-            }
-        }
-
-        private void Connector_CreatingObjectFailed(object? sender, EventArgs e)
-        {
-            if (IsAI(AircraftTitle) && aiRequestId != null)
-            {
-                logger.LogDebug("Fail to spawn for request {requestID}", aiRequestId);
-                aiRequestId = null;
-                StopReplay();
-            }
-        }
-
-        private void Connector_Frame(object? sender, EventArgs e)
-        {
-            Tick();
-        }
-
-        private void Timer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            //Tick();
-        }
-
-        private async Task RunReplay()
-        {
-
-            //timer = new Timer();
-            //timer.Elapsed += Timer_Elapsed;
-            //timer.Start();
-
             if (!IsAI(AircraftTitle))
             {
-                connector.Freeze(0);
+                connector.Unfreeze(0);
+            }
+            else if (aiId.HasValue)
+            {
+                connector.Unfreeze(aiId.Value);
+            }
+        }
+    }
+
+    public void NotifyPosition(AircraftPositionStruct? value)
+    {
+        currentPosition = value;
+    }
+
+    public void FromData(string? fileName, SavedData data)
+    {
+        startMilliseconds = data.StartTime;
+        endMilliseconds = data.EndTime;
+        startState = data.StartState == null ? null : SimState.ToStruct(data.StartState);
+        Reset();
+        Records = data.Records.Select(r => (r.Time, AircraftPosition.ToStruct(r.Position))).ToList();
+        RecordsUpdated?.Invoke(this, new(fileName, data.StartState?.AircraftTitle, Records.Count));
+        CurrentFrameChanged?.Invoke(this, new(currentFrame));
+    }
+
+    public SavedData ToData(string clientVersion)
+    {
+        if (startMilliseconds == null) throw new InvalidOperationException("Invalid replay data without start time!");
+        if (endMilliseconds == null) throw new InvalidOperationException("Invalid replay data without end time!");
+        return new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, Records);
+    }
+
+    #endregion
+
+    #region Private Functions
+
+    private void Connector_AircraftIdReceived(object? sender, AircraftIdReceivedEventArgs e)
+    {
+        if (IsAI(AircraftTitle) && aiRequestId == e.RequestId && aiId == null)
+        {
+            logger.LogDebug("Set AI ID {objectID}", e.ObjectId);
+            aiRequestId = null;
+            aiId = e.ObjectId;
+        }
+    }
+
+    private void Connector_CreatingObjectFailed(object? sender, EventArgs e)
+    {
+        if (IsAI(AircraftTitle) && aiRequestId != null)
+        {
+            logger.LogDebug("Fail to spawn for request {requestID}", aiRequestId);
+            aiRequestId = null;
+            StopReplay();
+        }
+    }
+
+    private void Connector_Frame(object? sender, EventArgs e)
+    {
+        Tick();
+    }
+
+    private void Timer_Elapsed(object sender, ElapsedEventArgs e)
+    {
+        //Tick();
+    }
+
+    private async Task RunReplay()
+    {
+
+        //timer = new Timer();
+        //timer.Elapsed += Timer_Elapsed;
+        //timer.Start();
+
+        if (!IsAI(AircraftTitle))
+        {
+            connector.Freeze(0);
+        }
+
+        var enumerator = Records.GetEnumerator();
+        currentFrame = -1;
+        long? recordedElapsed = null;
+        AircraftPositionStruct? position = null;
+
+        long? lastElapsed = 0;
+        AircraftPositionStruct? lastPosition = null;
+
+        while (true)
+        {
+            // TODO: break this loop when window is closed
+
+            // Wait for tick call from the sim frame
+            tcs = new TaskCompletionSource<bool>();
+            await tcs.Task;
+            tcs = null;
+
+            if (isReplayStopping)
+            {
+                FinishReplay(false);
+                return;
             }
 
-            var enumerator = Records.GetEnumerator();
-            currentFrame = -1;
-            long? recordedElapsed = null;
-            AircraftPositionStruct? position = null;
-
-            long? lastElapsed = 0;
-            AircraftPositionStruct? lastPosition = null;
-
-            while (true)
+            var replayStartTime = replayMilliseconds;
+            if (replayStartTime == null)
             {
-                // TODO: break this loop when window is closed
+                // Safe-guard for Stopped
+                continue;
+            }
 
-                // Wait for tick call from the sim frame
-                tcs = new TaskCompletionSource<bool>();
-                await tcs.Task;
-                tcs = null;
+            if (IsAI(AircraftTitle) && aiId == null)
+            {
+                // Wait for spawning
+                continue;
+            }
 
-                if (isReplayStopping)
+            if (IsPausing)
+            {
+                continue;
+            }
+
+            if (forceReset || (pausedFrame != null && pausedFrame != currentFrame))
+            {
+                // Reset the enumerator since user might seek backward or change changed due to trimming
+                logger.LogDebug("Reset interaction. Pause frame {frame}.", pausedFrame);
+
+                forceReset = false;
+
+                enumerator = Records.GetEnumerator();
+                currentFrame = -1;
+                recordedElapsed = null;
+                position = null;
+
+                pausedFrame = null;
+            }
+
+            var currentElapsed = (long)((stopwatch.ElapsedMilliseconds - replayStartTime.Value) * rate);
+
+            try
+            {
+                while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
                 {
-                    FinishReplay(false);
-                    return;
-                }
+                    logger.LogTrace("Move next {currentElapsed}", currentElapsed);
+                    var canMove = enumerator.MoveNext();
 
-                var replayStartTime = replayMilliseconds;
-                if (replayStartTime == null)
-                {
-                    // Safe-guard for Stopped
-                    continue;
-                }
-
-                if (IsAI(AircraftTitle) && aiId == null)
-                {
-                    // Wait for spawning
-                    continue;
-                }
-
-                if (IsPausing)
-                {
-                    continue;
-                }
-
-                if (pausedFrame != null && pausedFrame != currentFrame)
-                {
-                    // Reset the enumerator since user might seek backward
-                    logger.LogDebug("Reset interaction. Pause frame {frame}.", pausedFrame);
-
-                    enumerator = Records.GetEnumerator();
-                    currentFrame = -1;
-                    recordedElapsed = null;
-                    position = null;
-
-                    pausedFrame = null;
-                }
-
-                var currentElapsed = (long)((stopwatch.ElapsedMilliseconds - replayStartTime.Value) * rate);
-
-                try
-                {
-                    while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
+                    if (canMove)
                     {
-                        logger.LogTrace("Move next {currentElapsed}", currentElapsed);
-                        var canMove = enumerator.MoveNext();
+                        currentFrame++;
+                        (var recordedMilliseconds, var recordedPosition) = enumerator.Current;
+                        lastElapsed = recordedElapsed;
+                        lastPosition = position;
+                        recordedElapsed = recordedMilliseconds - startMilliseconds;
+                        position = recordedPosition;
 
-                        if (canMove)
-                        {
-                            currentFrame++;
-                            (var recordedMilliseconds, var recordedPosition) = enumerator.Current;
-                            lastElapsed = recordedElapsed;
-                            lastPosition = position;
-                            recordedElapsed = recordedMilliseconds - startMilliseconds;
-                            position = recordedPosition;
-
-                            // Try to check the velocity
-                        }
-                        else
-                        {
-                            // Last frame
-                            FinishReplay(true);
-                            return;
-                        }
+                        // Try to check the velocity
+                    }
+                    else
+                    {
+                        // Last frame
+                        FinishReplay(true);
+                        return;
                     }
                 }
-                finally
-                {
-                    logger.LogTrace("Current Frame {currentFrame} {ellapsed}", currentFrame, currentElapsed);
-                    CurrentFrameChanged?.Invoke(this, new CurrentFrameChangedEventArgs(currentFrame));
-                }
+            }
+            finally
+            {
+                logger.LogTrace("Current Frame {currentFrame} {ellapsed}", currentFrame, currentElapsed);
+                CurrentFrameChanged?.Invoke(this, new(currentFrame));
+            }
 
-                if (position.HasValue && recordedElapsed.HasValue)
-                {
-                    MoveAircraft(recordedElapsed.Value, position.Value, lastElapsed, lastPosition, currentElapsed);
-                }
+            if (position.HasValue && recordedElapsed.HasValue)
+            {
+                MoveAircraft(recordedElapsed.Value, position.Value, lastElapsed, lastPosition, currentElapsed);
             }
         }
-
-        private void FinishReplay(bool reachedLastFrame)
-        {
-            logger.LogInformation("Replay finished.");
-
-            currentFrame = 0;
-            isReplayStopping = false;
-
-            if (IsAI(AircraftTitle))
-            {
-                //timer.Stop();
-                //timer = null;
-
-                if (aiId.HasValue)
-                {
-                    connector.Despawn(aiId.Value);
-                    aiId = null;
-                }
-            }
-            else
-            {
-                Unfreeze();
-            }
-
-            // Reset
-            pausedMilliseconds = null;
-            pausedFrame = null;
-            replayMilliseconds = null;
-            offsetStartMilliseconds = null;
-
-            if (reachedLastFrame && repeat)
-            {
-                Replay();
-            }
-            else
-            {
-                ReplayFinished?.Invoke(this, new EventArgs());
-            }
-        }
-
-        private void MoveAircraft(long nextElapsed, AircraftPositionStruct position, long? lastElapsed, AircraftPositionStruct? lastPosition, long currentElapsed)
-        {
-            logger.LogTrace("Delta time {delta} {current} {recorded}.", currentElapsed - nextElapsed, currentElapsed, nextElapsed);
-
-            var nextValue = AircraftPositionStructOperator.ToSet(position);
-            if (lastPosition.HasValue && lastElapsed.HasValue)
-            {
-                var interpolation = (double)(currentElapsed - lastElapsed.Value) / (nextElapsed - lastElapsed.Value);
-                if (interpolation == 0.5)
-                {
-                    // Edge case: let next value win so Math.round does not act unexpectedly
-                    interpolation = 0.501;
-                }
-                nextValue = AircraftPositionStructOperator.Interpolate(nextValue, AircraftPositionStructOperator.ToSet(lastPosition.Value), interpolation);
-            }
-            if (!IsAI(AircraftTitle) && currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
-            {
-                lastTriggeredMilliseconds = stopwatch.ElapsedMilliseconds;
-                connector.TriggerEvents(currentPosition.Value, position);
-            }
-
-            connector.Set(aiId ?? 0, nextValue);
-        }
-
-        private void Tick()
-        {
-            if (IsReplaying || IsPausing)
-            {
-                try
-                {
-                    tcs?.SetResult(true);
-                }
-                catch (InvalidOperationException ex)
-                {
-                    // Ignore since most likely tcs result is already set
-                    logger.LogDebug(ex, "Cannot set TCS result on tick");
-                }
-            }
-        }
-
-        #endregion
     }
+
+    private void FinishReplay(bool reachedLastFrame)
+    {
+        logger.LogInformation("Replay finished.");
+
+        isReplayStopping = false;
+
+        if (IsAI(AircraftTitle))
+        {
+            //timer.Stop();
+            //timer = null;
+
+            if (aiId.HasValue)
+            {
+                connector.Despawn(aiId.Value);
+                aiId = null;
+            }
+        }
+        else
+        {
+            Unfreeze();
+        }
+
+        Reset();
+
+        if (reachedLastFrame && repeat)
+        {
+            Replay();
+        }
+        else
+        {
+            ReplayFinished?.Invoke(this, new EventArgs());
+        }
+    }
+
+    private void Reset()
+    {
+        pausedMilliseconds = null;
+        pausedFrame = null;
+        replayMilliseconds = null;
+        currentFrame = 0;
+        offsetStartMilliseconds = 0;
+    }
+
+    private void MoveAircraft(long nextElapsed, AircraftPositionStruct position, long? lastElapsed, AircraftPositionStruct? lastPosition, long currentElapsed)
+    {
+        logger.LogTrace("Delta time {delta} {current} {recorded}.", currentElapsed - nextElapsed, currentElapsed, nextElapsed);
+
+        var nextValue = AircraftPositionStructOperator.ToSet(position);
+        if (lastPosition.HasValue && lastElapsed.HasValue)
+        {
+            var interpolation = (double)(currentElapsed - lastElapsed.Value) / (nextElapsed - lastElapsed.Value);
+            if (interpolation == 0.5)
+            {
+                // Edge case: let next value win so Math.round does not act unexpectedly
+                interpolation = 0.501;
+            }
+            nextValue = AircraftPositionStructOperator.Interpolate(nextValue, AircraftPositionStructOperator.ToSet(lastPosition.Value), interpolation);
+        }
+        if (!IsAI(AircraftTitle) && currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
+        {
+            lastTriggeredMilliseconds = stopwatch.ElapsedMilliseconds;
+            connector.TriggerEvents(currentPosition.Value, position);
+        }
+
+        connector.Set(aiId ?? 0, nextValue);
+    }
+
+    private void Tick()
+    {
+        if (IsReplaying || IsPausing)
+        {
+            try
+            {
+                tcs?.SetResult(true);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Ignore since most likely tcs result is already set
+                logger.LogDebug(ex, "Cannot set TCS result on tick");
+            }
+        }
+    }
+
+    #endregion
 }
