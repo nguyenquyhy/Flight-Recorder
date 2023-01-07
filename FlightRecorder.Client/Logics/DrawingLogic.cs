@@ -76,18 +76,21 @@ public class DrawingLogic
                         {
                             var backBuffer = bmp.BackBuffer;
 
-                            for (var y = 0; y < image.Height; y++)
+                            image.ProcessPixelRows(accessor =>
                             {
-                                var buffer = image.GetPixelRowSpan(y);
-                                for (var x = 0; x < image.Width; x++)
+                                for (var y = 0; y < image.Height; y++)
                                 {
-                                    var backBufferPos = backBuffer + (y * image.Width + x) * 4;
-                                    var rgba = buffer[x];
-                                    var color = rgba.A << 24 | rgba.R << 16 | rgba.G << 8 | rgba.B;
+                                    var buffer = accessor.GetRowSpan(y);
+                                    for (var x = 0; x < image.Width; x++)
+                                    {
+                                        var backBufferPos = backBuffer + (y * image.Width + x) * 4;
+                                        var rgba = buffer[x];
+                                        var color = rgba.A << 24 | rgba.R << 16 | rgba.G << 8 | rgba.B;
 
-                                    Marshal.WriteInt32(backBufferPos, color);
+                                        Marshal.WriteInt32(backBufferPos, color);
+                                    }
                                 }
-                            }
+                            });
 
                             bmp.AddDirtyRect(new Int32Rect(0, 0, image.Width, image.Height));
                         }
