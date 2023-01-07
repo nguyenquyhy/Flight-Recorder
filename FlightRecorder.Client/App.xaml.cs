@@ -108,7 +108,8 @@ public partial class App : Application
         services.AddSingleton<IStorageLogic, StorageLogic>();
         services.AddSingleton<IThreadLogic, ThreadLogic>();
         services.AddSingleton<IConnector, Connector>();
-        services.AddSingleton<ExportLogic>();
+        services.AddSingleton<CsvExportLogic>();
+        services.AddSingleton<KmlExportLogic>();
         services.AddSingleton<IDialogLogic, DialogLogic>();
         services.AddSingleton<WindowFactory>();
         services.AddSingleton<ISettingsLogic, FileSettingsLogic>();

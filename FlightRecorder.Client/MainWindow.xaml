@@ -214,6 +214,12 @@
                         Grid.Column="1"
                         IsEnabled="{Binding State, Converter={StaticResource ValueToTrueConverter}, ConverterParameter=DisconnectedSaved|DisconnectedUnsaved|IdleSaved|IdleUnsaved}">
                     Export
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="CSV" Click="ExportMenuItem_Click" />
+                            <MenuItem Header="KML" Click="ExportMenuItem_Click" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
                 </Button>
 
                 <Grid Grid.Column="2">

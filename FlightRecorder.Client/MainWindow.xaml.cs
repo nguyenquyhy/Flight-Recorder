@@ -24,7 +24,8 @@ public partial class MainWindow : BaseWindow
     private readonly IConnector connector;
     private readonly ICrashLogic crashLogic;
     private readonly DrawingLogic drawingLogic;
-    private readonly ExportLogic exportLogic;
+    private readonly CsvExportLogic csvExportLogic;
+    private readonly KmlExportLogic kmlExportLogic;
     private readonly ShortcutKeyLogic shortcutKeyLogic;
     private readonly WindowFactory windowFactory;
     private readonly IRecorderLogic recorderLogic;
@@ -37,7 +38,8 @@ public partial class MainWindow : BaseWindow
         IConnector connector,
         ICrashLogic crashLogic,
         DrawingLogic drawingLogic,
-        ExportLogic exportLogic,
+        CsvExportLogic csvExportLogic,
+        KmlExportLogic kmlExportLogic,
         VersionLogic versionLogic,
         ShortcutKeyLogic shortcutKeyLogic,
         Orchestrator orchestrator,
@@ -50,7 +52,8 @@ public partial class MainWindow : BaseWindow
         this.connector = connector;
         this.crashLogic = crashLogic;
         this.drawingLogic = drawingLogic;
-        this.exportLogic = exportLogic;
+        this.csvExportLogic = csvExportLogic;
+        this.kmlExportLogic = kmlExportLogic;
         this.shortcutKeyLogic = shortcutKeyLogic;
         this.windowFactory = windowFactory;
         this.recorderLogic = orchestrator.RecorderLogic;
@@ -81,7 +84,7 @@ public partial class MainWindow : BaseWindow
         await base.Window_LoadedAsync(sender, e);
 
         await crashLogic.LoadDataAsync(stateMachine, replayLogic);
-        
+
         // Create an event handle for the WPF window to listen for SimConnect events
         Handle = new WindowInteropHelper(sender as Window).Handle; // Get handle of main WPF Window
         var HandleSource = HwndSource.FromHwnd(Handle); // Get source of handle in order to add event handlers to it
@@ -163,30 +166,24 @@ public partial class MainWindow : BaseWindow
         await stateMachine.TransitAsync(StateMachine.Event.Save);
     }
 
-    private async void ButtonExport_Click(object sender, RoutedEventArgs e)
+    private void ButtonExport_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SaveFileDialog
+        if (sender is Button button)
         {
-            FileName = $"Export {DateTime.Now:yyyy-MM-dd-HH-mm}.csv",
-            Filter = "CSV (for Excel)|*.csv"
-        };
-        if (dialog.ShowDialog() == true)
-        {
-            try
-            {
-                await exportLogic.ExportAsync(dialog.FileName, replayLogic.Records.Select(o =>
-                {
-                    var result = AircraftPosition.FromStruct(o.position);
-                    result.Milliseconds = o.milliseconds;
-                    return result;
-                }));
+            button.ContextMenu.IsOpen = true;
+        }
+    }
 
-                logger.LogDebug("Save file into {fileName}", dialog.FileName);
-            }
-            catch (IOException)
+    private async void ExportMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as MenuItem)?.Header is string header)
+        {
+            await ExportAsync(header switch
             {
-                MessageBox.Show("Flight Recorder cannot write the file to disk.\nPlease make sure the folder is accessible by Flight Recorder, and you are not overwriting a locked file.", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+                "CSV" => csvExportLogic,
+                "KML" => kmlExportLogic,
+                _ => throw new NotSupportedException($"{header} export type is not supported!")
+            });
         }
     }
 
@@ -320,5 +317,32 @@ public partial class MainWindow : BaseWindow
         window.Owner = this;
         window.ShowInTaskbar = false;
         window.ShowDialog();
+    }
+
+    private async Task ExportAsync(IExportLogic exportLogic)
+    {
+        var dialog = new SaveFileDialog
+        {
+            FileName = exportLogic.GetFileName(),
+            Filter = exportLogic.GetFileFilter(),
+        };
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                await exportLogic.ExportAsync(dialog.FileName, replayLogic.Records.Select(o =>
+                {
+                    var result = AircraftPosition.FromStruct(o.position);
+                    result.Milliseconds = o.milliseconds;
+                    return result;
+                }));
+
+                logger.LogDebug("Save file into {fileName}", dialog.FileName);
+            }
+            catch (IOException)
+            {
+                MessageBox.Show("Flight Recorder cannot write the file to disk.\nPlease make sure the folder is accessible by Flight Recorder, and you are not overwriting a locked file.", "Flight Recorder", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 }
