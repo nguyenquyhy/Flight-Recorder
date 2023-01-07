@@ -30,18 +30,6 @@ namespace FlightRecorder.Client
         public double VelocityBodyY;
         [SimConnectVariable(Name = "VELOCITY BODY Z", Unit = "Feet per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
         public double VelocityBodyZ;
-        [SimConnectVariable(Name = "ROTATION VELOCITY BODY X", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
-        public double RotationVelocityBodyX;
-        [SimConnectVariable(Name = "ROTATION VELOCITY BODY Y", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
-        public double RotationVelocityBodyY;
-        [SimConnectVariable(Name = "ROTATION VELOCITY BODY Z", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
-        public double RotationVelocityBodyZ;
-        [SimConnectVariable(Name = "ACCELERATION BODY X", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
-        public double AccelerationBodyX;
-        [SimConnectVariable(Name = "ACCELERATION BODY Y", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
-        public double AccelerationBodyY;
-        [SimConnectVariable(Name = "ACCELERATION BODY Z", Unit = "radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64)]
-        public double AccelerationBodyZ;
 
         [SimConnectVariable(Name = "AILERON POSITION", Unit = "Position", Type = SIMCONNECT_DATATYPE.FLOAT64)]
         public double AileronPosition;
@@ -176,6 +164,19 @@ namespace FlightRecorder.Client
         public double HsiCDI;
         [SimConnectVariable(Name = "STALL WARNING", Unit = "Bool", Type = SIMCONNECT_DATATYPE.INT32, SetType = SetType.None)]
         public uint StallWarning;
+
+        [SimConnectVariable(Name = "ROTATION VELOCITY BODY X", Unit = "Radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double RotationVelocityBodyX;
+        [SimConnectVariable(Name = "ROTATION VELOCITY BODY Y", Unit = "Radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double RotationVelocityBodyY;
+        [SimConnectVariable(Name = "ROTATION VELOCITY BODY Z", Unit = "Radians per second", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double RotationVelocityBodyZ;
+        [SimConnectVariable(Name = "ACCELERATION BODY X", Unit = "Feet per second squared", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double AccelerationBodyX;
+        [SimConnectVariable(Name = "ACCELERATION BODY Y", Unit = "Feet per second squared", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double AccelerationBodyY;
+        [SimConnectVariable(Name = "ACCELERATION BODY Z", Unit = "Feet per second squared", Type = SIMCONNECT_DATATYPE.FLOAT64, SetType = SetType.None)]
+        public double AccelerationBodyZ;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
