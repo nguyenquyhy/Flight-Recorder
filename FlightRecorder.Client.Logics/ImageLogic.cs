@@ -57,11 +57,11 @@ public class ImageLogic
                 {
                     if (points.Count > 1)
                     {
-                        ctx.DrawLines(color, 1f, points.ToArray());
+                        ctx.DrawLine(color, 1f, points.ToArray());
                     }
                     else if (points.Count == 1)
                     {
-                        ctx.DrawLines(color, 1f, new PointF[] { points[0], points[0] });
+                        ctx.DrawLine(color, 1f, new PointF[] { points[0], points[0] });
                     }
                 }
             });
@@ -80,7 +80,7 @@ public class ImageLogic
 
                 if (currentX >= 0)
                 {
-                    ctx.DrawLines(Color.Red, 1, new PointF(currentX, 0), new PointF(currentX, height));
+                    ctx.DrawLine(Color.Red, 1, new PointF(currentX, 0), new PointF(currentX, height));
                 }
             });
             return image;
