@@ -36,36 +36,43 @@ public class CrashLogic : ICrashLogic
                 return;
             }
 
-            using (var file = File.OpenRead(CrashFileName))
+            try
             {
-                using var zipFile = new ZipFile(file);
-
-                foreach (ZipEntry entry in zipFile)
+                using (var file = File.OpenRead(CrashFileName))
                 {
-                    if (entry.IsFile && entry.Name == "data.json")
+                    using var zipFile = new ZipFile(file);
+
+                    foreach (ZipEntry entry in zipFile)
                     {
-                        var stream = zipFile.GetInputStream(entry);
-
-                        var crashData = await JsonSerializer.DeserializeAsync<SavedData>(stream);
-
-                        if (crashData == null)
+                        if (entry.IsFile && entry.Name == "data.json")
                         {
-                            logger.LogWarning("Crash data is null.");
-                            dialogLogic.Error("Cannot load auto-save flight!");
-                            return;
+                            var stream = zipFile.GetInputStream(entry);
+
+                            var crashData = await JsonSerializer.DeserializeAsync<SavedData>(stream);
+
+                            if (crashData == null)
+                            {
+                                logger.LogWarning("Crash data is null.");
+                                dialogLogic.Error("Cannot load auto-save flight!");
+                                return;
+                            }
+
+                            replayLogic.FromData(null, crashData);
+                            logger.LogDebug("Loaded crash file");
+
+                            await stateMachine.TransitAsync(StateMachine.Event.RestoreCrashData);
+
+                            break;
                         }
-
-                        replayLogic.FromData(null, crashData);
-                        logger.LogDebug("Loaded crash file");
-
-                        await stateMachine.TransitAsync(StateMachine.Event.RestoreCrashData);
-
-                        break;
                     }
                 }
+                CleanUp();
+            } 
+            catch (ZipException ex)
+            {
+                logger.LogError(ex, "Cannot load recovery file!");
+                dialogLogic.Error("Cannot load auto-save flight!");
             }
-
-            CleanUp();
         }
     }
 
