@@ -129,6 +129,7 @@ public class StateMachine : StateMachineCore
         Register(Transition.From(State.IdleEmpty).To(State.LoadingIdle).By(Event.RequestLoading).ThenUpdate(viewModel));
         Register(Transition.From(State.IdleEmpty).To(State.End).By(Event.Exit));
         Register(Transition.From(State.IdleEmpty).To(State.IdleSaved).By(Event.LoadAI).ThenUpdate(viewModel)); // AI
+        Register(Transition.From(State.IdleEmpty).To(State.IdleEmpty).By(Event.Connect)); // NO-OP
 
         Register(Transition.From(State.IdleSaved).To(State.DisconnectedSaved).By(Event.Disconnect).ThenUpdate(viewModel));
         Register(Transition.From(State.IdleSaved).To(State.Recording).By(Event.Record).Then(StartRecording).ThenUpdate(viewModel));
@@ -138,6 +139,7 @@ public class StateMachine : StateMachineCore
         Register(Transition.From(State.IdleSaved).To(State.IdleUnsaved).By(Event.TrimStart).Then(TrimStart).ThenUpdate(viewModel));
         Register(Transition.From(State.IdleSaved).To(State.IdleUnsaved).By(Event.TrimEnd).Then(TrimEnd).ThenUpdate(viewModel));
         Register(Transition.From(State.IdleSaved).To(State.End).By(Event.Exit));
+        Register(Transition.From(State.IdleSaved).To(State.IdleSaved).By(Event.Connect)); // NO-OP
 
         Register(Transition.From(State.IdleUnsaved).To(State.DisconnectedUnsaved).By(Event.Disconnect).ThenUpdate(viewModel));
         Register(Transition.From(State.IdleUnsaved).To(State.Recording).By(Event.Record).Then(() =>
@@ -162,6 +164,7 @@ public class StateMachine : StateMachineCore
         {
             return dialogLogic.Confirm("You haven't saved the recording.\n\nDo you want to exit Flight Recorder without saving?");
         }));
+        Register(Transition.From(State.IdleUnsaved).To(State.IdleUnsaved).By(Event.Connect)); // NO-OP
 
         Register(Transition.From(State.SavingIdle).To(State.IdleSaved).By(Event.Save).Then(SaveRecordingAsync).ThenUpdate(viewModel));
         Register(Transition.From(State.SavingIdle).To(State.SavingDisconnected).By(Event.Disconnect).ThenUpdate(viewModel));
