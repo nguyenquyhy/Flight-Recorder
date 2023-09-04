@@ -113,5 +113,16 @@ namespace FlightRecorder.Client.ViewModels.Tests
             }, TimeSpan.FromSeconds(5));
             Assert.AreEqual(StateMachine.State.DisconnectedUnsaved, viewModel.State);
         }
+
+        [TestMethod]
+        public async Task TestEventsAfterEnd()
+        {
+            await stateMachine.TransitAsync(StateMachine.Event.StartUp);
+            await stateMachine.TransitAsync(StateMachine.Event.Exit);
+            Assert.AreEqual(StateMachine.State.End, stateMachine.CurrentState);
+
+            await stateMachine.TransitAsync(StateMachine.Event.Disconnect);
+            Assert.AreEqual(StateMachine.State.End, stateMachine.CurrentState);
+        }
     }
 }

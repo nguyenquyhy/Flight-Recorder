@@ -86,6 +86,8 @@ public class StateMachine : StateMachineCore
 
     private void InitializeStateMachine()
     {
+        RegisterEnd(State.End);
+
         Register(Transition.From(State.Start).To(State.DisconnectedEmpty).By(Event.StartUp).ThenUpdate(viewModel));
 
         Register(Transition.From(State.DisconnectedEmpty).To(State.DisconnectedUnsaved).By(Event.RestoreCrashData).ThenUpdate(viewModel));

@@ -26,6 +26,8 @@ public abstract class StateMachineCore
     /// </summary>
     private List<Event>? transitioningEvents = null;
 
+    private readonly List<State> endStates = new();
+
     public State CurrentState { get; private set; } = State.Start;
 
     public StateMachineCore(ILogger logger, IDialogLogic dialogLogic, MainViewModel viewModel)
@@ -41,6 +43,12 @@ public abstract class StateMachineCore
     public async Task<bool> TransitAsync(Event e, bool fromShortcut = false)
     {
         logger.LogDebug("Triggering event {event} from state {state}", e, CurrentState);
+
+        if (endStates.Contains(CurrentState))
+        {
+            logger.LogInformation("Ignored event {event} from state {state}", e, CurrentState);
+            return true;
+        }
 
         if (stateLogics.TryGetValue(CurrentState, out var transitions) && transitions.TryGetValue(e, out var transition))
         {
@@ -237,5 +245,13 @@ public abstract class StateMachineCore
             throw new InvalidOperationException($"There is already a transition from {logic.FromState} that use {logic.ByEvent} (to {fromLogic[logic.ByEvent].ToState})!");
         }
         fromLogic.Add(logic.ByEvent, logic);
+    }
+
+    protected void RegisterEnd(State state)
+    {
+        if (!endStates.Contains(state))
+        {
+            endStates.Add(state);
+        }
     }
 }
