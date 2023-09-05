@@ -11,6 +11,7 @@ public interface IReplayLogic
 
     List<(long milliseconds, AircraftPositionStruct position)> Records { get; }
     string? AircraftTitle { get; set; }
+    bool IsReplayable { get; }
 
     bool Replay();
     bool PauseReplay();

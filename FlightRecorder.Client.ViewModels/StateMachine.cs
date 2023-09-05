@@ -184,7 +184,11 @@ public class StateMachine : StateMachineCore
         Register(Transition.From(State.LoadingDisconnected).To(State.LoadingDisconnected).By(Event.Disconnect)); // NO-OP
         Register(Transition.From(State.LoadingDisconnected).To(State.LoadingDisconnected).By(Event.Exit)); // NO-OP
 
-        Register(Transition.From(State.Recording).To(State.IdleUnsaved).By(Event.Stop).Then(StopRecording).ThenUpdate(viewModel));
+        Register(Transition
+            .From(State.Recording)
+            .To(State.IdleEmpty, () => !replayLogic.IsReplayable)
+            .To(State.IdleUnsaved)
+            .By(Event.Stop).Then(StopRecording).ThenUpdate(viewModel));
 
         Register(Transition.From(State.ReplayingSaved).To(State.ReplayingSaved).By(Event.RequestStopping).Then(RequestStopping));
         Register(Transition.From(State.ReplayingSaved).To(State.PausingSaved).By(Event.Pause).Then(() => replayLogic.PauseReplay()).ThenUpdate(viewModel));

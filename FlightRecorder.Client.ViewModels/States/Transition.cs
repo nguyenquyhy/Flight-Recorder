@@ -11,6 +11,7 @@ namespace FlightRecorder.Client.ViewModels.States
         public static Transition From(State state) => new Transition() with { FromState = state };
 
         public State FromState { get; init; }
+        public ImmutableList<(State, Func<bool>)> ToStateConditional { get; init; } = ImmutableList<(State, Func<bool>)>.Empty;
         public State ToState { get; init; }
         public Event ByEvent { get; init; }
         public ImmutableList<object> Actions { get; init; } = ImmutableList<object>.Empty;
@@ -19,6 +20,10 @@ namespace FlightRecorder.Client.ViewModels.States
         public string? RevertErrorMessage { get; set; }
 
         public Transition To(State state) => this with { ToState = state };
+        /// <summary>
+        /// Can be called multiple times
+        /// </summary>
+        public Transition To(State state, Func<bool> condition) => this with { ToStateConditional = ToStateConditional.Add((state, condition)) };
 
         /// <summary>
         /// Can be called multiple times
@@ -59,6 +64,19 @@ namespace FlightRecorder.Client.ViewModels.States
                         break;
                 }
 
+            }
+
+            return CalculateToState();
+        }
+
+        public State CalculateToState()
+        {
+            foreach (var (toState, condition) in ToStateConditional)
+            {
+                if (condition())
+                {
+                    return toState;
+                }
             }
             return ToState;
         }

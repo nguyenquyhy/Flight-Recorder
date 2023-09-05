@@ -47,7 +47,7 @@ public class ReplayLogic : IReplayLogic, IDisposable
     private long? lastTriggeredMilliseconds = null;
     private TaskCompletionSource<bool>? tcs;
 
-    private bool IsReplayable => Records.Count > 0;
+    public bool IsReplayable => Records.Count > 0;
     private bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
     private bool IsPausing => pausedMilliseconds != null;
 
@@ -240,7 +240,7 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
     public void TrimStart()
     {
-        logger.LogDebug("Trim start from frame {frame}", currentFrame);
+        logger.LogInformation("Trim start from frame {frame}", currentFrame);
         var trimFrame = currentFrame;
 
         if (IsPausing)
