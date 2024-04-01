@@ -57,7 +57,7 @@ public partial class App : Application
 
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
-        MainWindow = ServiceProvider.GetRequiredService<WindowFactory>().Create<MainWindow>(ServiceProvider);
+        MainWindow = ServiceProvider.GetRequiredService<WindowFactory>().CreateScopedWindow<MainWindow>(ServiceProvider);
         MainWindow.Show();
     }
 

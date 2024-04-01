@@ -309,11 +309,11 @@ public partial class MainWindow : BaseWindow
     private ServiceProvider GetServiceProvider() => (Application.Current as App)?.ServiceProvider ??
         throw new InvalidOperationException("ServiceProvider is not initialized!");
 
-    private AIWindow CreateAIWindow() => windowFactory.Create<AIWindow>(GetServiceProvider());
+    private AIWindow CreateAIWindow() => windowFactory.CreateScopedWindow<AIWindow>(GetServiceProvider());
 
     private void ButtonShortcutKeys_Click(object sender, RoutedEventArgs e)
     {
-        var window = windowFactory.Create<ShortcutKeysWindow>(GetServiceProvider());
+        var window = windowFactory.CreateScopedWindow<ShortcutKeysWindow>(GetServiceProvider());
         window.Owner = this;
         window.ShowInTaskbar = false;
         window.ShowDialog();

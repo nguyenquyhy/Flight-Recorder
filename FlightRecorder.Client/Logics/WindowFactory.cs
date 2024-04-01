@@ -2,19 +2,18 @@
 using System;
 using System.Windows;
 
-namespace FlightRecorder.Client.Logics
+namespace FlightRecorder.Client.Logics;
+
+public class WindowFactory
 {
-    public class WindowFactory
+    public W CreateScopedWindow<W>(IServiceProvider serviceProvider) where W : Window
     {
-        public W Create<W>(IServiceProvider serviceProvider) where W : Window
+        var scope = serviceProvider.CreateScope();
+        var window = scope.ServiceProvider.GetRequiredService<W>();
+        window.Closed += (sender, agrs) =>
         {
-            var scope = serviceProvider.CreateScope();
-            var window = scope.ServiceProvider.GetRequiredService<W>();
-            window.Closed += (sender, agrs) =>
-            {
-                scope.Dispose();
-            };
-            return window;
-        }
+            scope.Dispose();
+        };
+        return window;
     }
 }
