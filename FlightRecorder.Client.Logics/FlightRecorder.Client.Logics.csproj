@@ -8,10 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsvHelper" Version="30.0.1" />
+    <PackageReference Include="CsvHelper" Version="31.0.2" />
     <PackageReference Include="SharpKml.Core" Version="6.0.0" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.2" />
   </ItemGroup>
 
   <ItemGroup>
