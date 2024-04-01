@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using FlightRecorder.Client.Logic;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -27,6 +29,17 @@ public class FileSettingsLogic : ISettingsLogic
     public Task SetShortcutKeysEnabledAsync(bool value)
     {
         return SaveAsync(settings => settings.ShortcutKeysEnabled = value);
+    }
+
+    public async Task<Dictionary<Shortcuts, ShortcutKey>?> GetShortcutKeysAsync()
+    {
+        var settings = await LoadAsync();
+        return settings.ShortcutKeys;
+    }
+
+    public Task SetShortcutKeysAsync(Dictionary<Shortcuts, ShortcutKey> shortcutKeys)
+    {
+        return SaveAsync(settings => settings.ShortcutKeys = shortcutKeys);
     }
 
     public async Task<string?> GetDefaultSaveFolderAsync()
@@ -98,5 +111,6 @@ public class FileSettingsLogic : ISettingsLogic
 public class Settings
 {
     public bool ShortcutKeysEnabled { get; set; } = false;
+    public Dictionary<Shortcuts, ShortcutKey>? ShortcutKeys { get; set; } = null;
     public string? DefaultSaveFolder { get; set; } = null;
 }

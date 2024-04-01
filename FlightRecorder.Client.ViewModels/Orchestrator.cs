@@ -4,76 +4,76 @@ using Microsoft.Extensions.Logging;
 using System;
 using static FlightRecorder.Client.StateMachine;
 
-namespace FlightRecorder.Client
+namespace FlightRecorder.Client;
+
+public class Orchestrator : IDisposable
 {
-    public class Orchestrator : IDisposable
+    public IStateMachine StateMachine { get; }
+    public IThreadLogic ThreadLogic { get; }
+    public IRecorderLogic RecorderLogic { get; }
+    public IReplayLogic ReplayLogic { get; }
+    public MainViewModel ViewModel { get; }
+
+    private readonly ILogger<Orchestrator> logger;
+    private readonly IConnector connector;
+
+    public Orchestrator(ILogger<Orchestrator> logger,
+        IStateMachine stateMachine, IThreadLogic threadLogic, IRecorderLogic recorderLogic, IReplayLogic replayLogic, IConnector connector, 
+        MainViewModel viewModel)
     {
-        public StateMachine StateMachine { get; }
-        public IThreadLogic ThreadLogic { get; }
-        public IRecorderLogic RecorderLogic { get; }
-        public IReplayLogic ReplayLogic { get; }
-        public MainViewModel ViewModel { get; }
+        logger.LogDebug("Creating instance of {class}", nameof(Orchestrator));
+        StateMachine = stateMachine;
+        ThreadLogic = threadLogic;
+        RecorderLogic = recorderLogic;
+        ReplayLogic = replayLogic;
+        ViewModel = viewModel;
 
-        private readonly ILogger<Orchestrator> logger;
-        private readonly IConnector connector;
+        this.logger = logger;
+        this.connector = connector;
+        RegisterEvents(connector);
+    }
 
-        public Orchestrator(ILogger<Orchestrator> logger,
-            StateMachine stateMachine, IThreadLogic threadLogic, IRecorderLogic recorderLogic, IReplayLogic replayLogic, IConnector connector, MainViewModel viewModel)
+    public void Dispose()
+    {
+        logger.LogDebug("Disposing {class}", nameof(Orchestrator));
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
         {
-            logger.LogDebug("Creating instance of {class}", nameof(Orchestrator));
-            StateMachine = stateMachine;
-            ThreadLogic = threadLogic;
-            RecorderLogic = recorderLogic;
-            ReplayLogic = replayLogic;
-            ViewModel = viewModel;
-
-            this.logger = logger;
-            this.connector = connector;
-            RegisterEvents(connector);
+            DeregisterEvents();
         }
+    }
 
-        public void Dispose()
-        {
-            logger.LogDebug("Disposing {class}", nameof(Orchestrator));
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+    private void RegisterEvents(IConnector connector)
+    {
+        ReplayLogic.ReplayFinished += ReplayFinished;
+        connector.Initialized += Connector_Initialized;
+        connector.Closed += Connector_Closed;
+    }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                DeregisterEvents();
-            }
-        }
+    private void DeregisterEvents()
+    {
+        ReplayLogic.ReplayFinished -= ReplayFinished;
+        connector.Initialized -= Connector_Initialized;
+        connector.Closed -= Connector_Closed;
+    }
 
-        private void RegisterEvents(IConnector connector)
-        {
-            ReplayLogic.ReplayFinished += ReplayFinished;
-            connector.Initialized += Connector_Initialized;
-            connector.Closed += Connector_Closed;
-        }
+    private async void Connector_Initialized(object? sender, EventArgs e)
+    {
+        await StateMachine.TransitAsync(Event.Connect);
+    }
 
-        private void DeregisterEvents()
-        {
-            ReplayLogic.ReplayFinished -= ReplayFinished;
-            connector.Initialized -= Connector_Initialized;
-            connector.Closed -= Connector_Closed;
-        }
+    private async void Connector_Closed(object? sender, EventArgs e)
+    {
+        await StateMachine.TransitAsync(Event.Disconnect);
+    }
 
-        private async void Connector_Initialized(object? sender, EventArgs e)
-        {
-            await StateMachine.TransitAsync(Event.Connect);
-        }
-
-        private async void Connector_Closed(object? sender, EventArgs e)
-        {
-            await StateMachine.TransitAsync(Event.Disconnect);
-        }
-
-        private async void ReplayFinished(object? sender, EventArgs e)
-        {
-            await StateMachine.TransitAsync(Event.Stop);
-        }
+    private async void ReplayFinished(object? sender, EventArgs e)
+    {
+        await StateMachine.TransitAsync(Event.Stop);
     }
 }

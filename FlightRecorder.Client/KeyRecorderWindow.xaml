@@ -1,0 +1,15 @@
+﻿<Window x:Class="FlightRecorder.Client.KeyRecorderWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FlightRecorder.Client"
+        mc:Ignorable="d"
+        Title="Shortcut Key" Height="100" Width="250"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        KeyDown="Window_KeyDown" KeyUp="Window_KeyUp">
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock x:Name="TextKeyPressed" TextAlignment="Center">Press an unused key combination</TextBlock>
+        <Button x:Name="ButtonAccept" Click="Button_Click" IsEnabled="False" Width="100">Accept</Button>
+    </StackPanel>
+</Window>

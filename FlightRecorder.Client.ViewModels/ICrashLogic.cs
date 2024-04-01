@@ -8,6 +8,6 @@ namespace FlightRecorder.Client;
 /// </summary>
 public interface ICrashLogic
 {
-    Task LoadDataAsync(StateMachine stateMachine, IReplayLogic replayLogic);
+    Task LoadDataAsync(IStateMachine stateMachine, IReplayLogic replayLogic);
     void SaveData();
 }

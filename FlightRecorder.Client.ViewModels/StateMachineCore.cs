@@ -10,13 +10,16 @@ using static FlightRecorder.Client.StateMachine;
 
 namespace FlightRecorder.Client;
 
-public abstract class StateMachineCore
+public abstract class StateMachineCore(
+    ILogger logger, 
+    IDialogLogic dialogLogic, 
+    MainViewModel viewModel
+) : IStateMachine
 {
     public event EventHandler<StateChangedEventArgs>? StateChanged;
 
-    protected readonly ILogger logger;
-    protected readonly IDialogLogic dialogLogic;
-    private readonly MainViewModel viewModel;
+    protected readonly ILogger logger = logger;
+    protected readonly IDialogLogic dialogLogic = dialogLogic;
     private readonly ConcurrentDictionary<Event, TaskCompletionSource<State>> waitingTasks = new();
     private readonly Dictionary<State, Dictionary<Event, Transition>> stateLogics = new();
 
@@ -29,13 +32,6 @@ public abstract class StateMachineCore
     private readonly List<State> endStates = new();
 
     public State CurrentState { get; private set; } = State.Start;
-
-    public StateMachineCore(ILogger logger, IDialogLogic dialogLogic, MainViewModel viewModel)
-    {
-        this.logger = logger;
-        this.dialogLogic = dialogLogic;
-        this.viewModel = viewModel;
-    }
 
     public Task<bool> TransitFromShortcutAsync(Event e) => TransitAsync(e, true);
 

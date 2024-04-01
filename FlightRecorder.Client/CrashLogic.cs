@@ -8,23 +8,16 @@ using System.Threading.Tasks;
 
 namespace FlightRecorder.Client;
 
-public class CrashLogic : ICrashLogic
+public class CrashLogic(
+    ILogger<CrashLogic> logger, 
+    IRecorderLogic recorderLogic, 
+    IDialogLogic dialogLogic, 
+    VersionLogic versionLogic
+) : ICrashLogic
 {
     private const string CrashFileName = "crashed_flight.dat";
-    private readonly ILogger<CrashLogic> logger;
-    private readonly IRecorderLogic recorderLogic;
-    private readonly IDialogLogic dialogLogic;
-    private readonly VersionLogic versionLogic;
 
-    public CrashLogic(ILogger<CrashLogic> logger, IRecorderLogic recorderLogic, IDialogLogic dialogLogic, VersionLogic versionLogic)
-    {
-        this.logger = logger;
-        this.recorderLogic = recorderLogic;
-        this.dialogLogic = dialogLogic;
-        this.versionLogic = versionLogic;
-    }
-
-    public async Task LoadDataAsync(StateMachine stateMachine, IReplayLogic replayLogic)
+    public async Task LoadDataAsync(IStateMachine stateMachine, IReplayLogic replayLogic)
     {
         if (File.Exists(CrashFileName))
         {

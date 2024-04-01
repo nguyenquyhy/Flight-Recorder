@@ -1,30 +1,25 @@
-﻿using FlightRecorder.Client.Logics;
+﻿using FlightRecorder.Client.Logic;
+using FlightRecorder.Client.Logics;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace FlightRecorder.Client;
 
-public class ShortcutKeyLogic
+public class ShortcutKeyLogic(
+    ILogger<ShortcutKeyLogic> logger,
+    IStateMachine stateMachine,
+    IThreadLogic threadLogic,
+    ISettingsLogic settingsLogic
+)
 {
     private const int HOTKEY_ID = 9000;
     private const uint MOD_ALT = 0x0001; //ALT
     private const uint MOD_CONTROL = 0x0002; //CTRL
     private const uint MOD_SHIFT = 0x0004; //SHIFT
-    // https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-    private const uint KeyRecord = 0x24; // Home
-    private const uint KeyStopRecording = 0x23; // End
-    private const uint KeyReplay = 'R';
-    private const uint KeyPause = 0xBC; // ,
-    private const uint KeyResume = 0xBE; // .
-    private const uint KeyStopReplaying = 'S';
-    private const uint KeySave = 'C';
-
-    private readonly ILogger<ShortcutKeyLogic> logger;
-    private readonly StateMachine stateMachine;
-    private readonly IThreadLogic threadLogic;
-    private readonly ISettingsLogic settingsLogic;
 
     [DllImport("user32.dll")]
     private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -32,18 +27,17 @@ public class ShortcutKeyLogic
     [DllImport("user32.dll")]
     private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
-    public ShortcutKeyLogic(
-        ILogger<ShortcutKeyLogic> logger,
-        StateMachine stateMachine,
-        IThreadLogic threadLogic,
-        ISettingsLogic settingsLogic
-    )
+    // https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+    private static Dictionary<Shortcuts, ShortcutKey> defaultShortcuts = new()
     {
-        this.logger = logger;
-        this.stateMachine = stateMachine;
-        this.threadLogic = threadLogic;
-        this.settingsLogic = settingsLogic;
-    }
+        [Shortcuts.Record] = new(true, true, true, "Home", 0x24),
+        [Shortcuts.StopRecording] = new(true, true, true, "End", 0x23),
+        [Shortcuts.Replay] = new(true, true, true, "R", 'R'),
+        [Shortcuts.Pause] = new(true, true, true, ",", 0xBC),
+        [Shortcuts.Resume] = new(true, true, true, ".", 0xBE),
+        [Shortcuts.StopReplay] = new(true, true, true, "S", 'S'),
+        [Shortcuts.SaveToDisk] = new(true, true, true, "C", 'C'),
+    };
 
     public async Task<bool> RegisterAsync(IntPtr handle)
     {
@@ -51,13 +45,19 @@ public class ShortcutKeyLogic
         {
             if (await settingsLogic.IsShortcutKeysEnabledAsync())
             {
-                RegisterHotKey(handle, 0, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyRecord);
-                RegisterHotKey(handle, 1, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyStopRecording);
-                RegisterHotKey(handle, 2, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyReplay);
-                RegisterHotKey(handle, 3, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyPause);
-                RegisterHotKey(handle, 4, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyResume);
-                RegisterHotKey(handle, 5, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeyStopReplaying);
-                RegisterHotKey(handle, 5, MOD_CONTROL | MOD_ALT | MOD_SHIFT, KeySave);
+                var shortcutKeys = await GetShortcutKeysAsync();
+                foreach ((var shortcut, var shortcutKey) in shortcutKeys)
+                {
+                    uint mod = 0;
+                    if (shortcutKey.Ctrl) mod |= MOD_CONTROL;
+                    if (shortcutKey.Alt) mod |= MOD_ALT;
+                    if (shortcutKey.Shift) mod |= MOD_SHIFT;
+                    var key = shortcutKey.VirtualKey;
+                    if (key > 0)
+                    {
+                        RegisterHotKey(handle, (int)shortcut, mod, key);
+                    }
+                }
                 return true;
             }
         }
@@ -66,6 +66,24 @@ public class ShortcutKeyLogic
             logger.LogError(ex, "Cannot register shortcut keys!");
         }
         return false;
+    }
+
+    public async Task<Dictionary<Shortcuts, ShortcutKey>> GetShortcutKeysAsync()
+    {
+        var shortcutKeys = new Dictionary<Shortcuts, ShortcutKey>();
+        var customShortcutKeys = await settingsLogic.GetShortcutKeysAsync() ?? [];
+        foreach (Shortcuts shortcut in Enum.GetValues(typeof(Shortcuts)))
+        {
+            if (customShortcutKeys.TryGetValue(shortcut, out var customKey))
+            {
+                shortcutKeys[shortcut] = customKey;
+            }
+            else
+            {
+                shortcutKeys[shortcut] = defaultShortcuts[shortcut];
+            }
+        }
+        return shortcutKeys;
     }
 
     public bool Unregister(IntPtr handle)
@@ -87,40 +105,41 @@ public class ShortcutKeyLogic
         {
             if (message == 0x312)
             {
-                var key = (uint)((int)lParam >> 16 & 0xFFFF);
-                logger.LogDebug("Shortcut key received {key}", key);
+                logger.LogDebug("Shortcut key received {id} {key}", wParam, lParam);
+                var id = (int)wParam;
                 threadLogic.RunInUIThread(async () =>
                 {
+                    var shortcutKeys = await GetShortcutKeysAsync();
                     try
                     {
-                        switch (key)
+                        switch (id)
                         {
-                            case KeyRecord:
+                            case (int)Shortcuts.Record:
                                 await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Record);
                                 break;
-                            case KeyStopRecording:
+                            case (int)Shortcuts.StopRecording:
                                 await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Stop);
                                 break;
-                            case KeyReplay:
+                            case (int)Shortcuts.Replay:
                                 await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Replay);
                                 break;
-                            case KeyPause:
+                            case (int)Shortcuts.Pause:
                                 await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Pause);
                                 break;
-                            case KeyResume:
+                            case (int)Shortcuts.Resume:
                                 await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Resume);
                                 break;
-                            case KeyStopReplaying:
+                            case (int)Shortcuts.StopReplay:
                                 await stateMachine.TransitFromShortcutAsync(StateMachine.Event.RequestStopping);
                                 break;
-                            case KeySave:
+                            case (int)Shortcuts.SaveToDisk:
                                 await stateMachine.TransitFromShortcutAsync(StateMachine.Event.Save);
                                 break;
                         }
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning(ex, "Cannot trigger event from shortcut key {key}", key);
+                        logger.LogWarning(ex, "Cannot trigger event from shortcut key {id}", id);
                     }
                 });
                 return true;
@@ -132,4 +151,7 @@ public class ShortcutKeyLogic
         }
         return false;
     }
+
+    public bool IsDuplicate(Shortcuts shortcut, ShortcutKey shortcutKey, Dictionary<Shortcuts, ShortcutKey> shortcutKeys)
+        => shortcutKeys.Any(pair => pair.Key != shortcut && pair.Value == shortcutKey);
 }

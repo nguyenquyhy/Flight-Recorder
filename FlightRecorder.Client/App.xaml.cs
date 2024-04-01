@@ -115,7 +115,7 @@ public partial class App : Application
         services.AddSingleton<ISettingsLogic, FileSettingsLogic>();
 
         services.AddScoped<Orchestrator>();
-        services.AddScoped<StateMachine>();
+        services.AddScoped<IStateMachine, StateMachine>();
         services.AddScoped<ShortcutKeyLogic>();
 
         // NOTE: For recorder, we leave it as singleton as it is supported only on main windows (not AI) and to allow saving on crash.
